@@ -9,7 +9,7 @@ import (
 	"github.com/xpladev/ethermint/encoding"
 	abci "github.com/cometbft/cometbft/abci/types"
 	"github.com/cometbft/cometbft/libs/log"
-	dbm "github.com/tendermint/tm-db"
+	dbm "github.com/cometbft/cometbft-db"
 )
 
 func BenchmarkEthermintApp_ExportAppStateAndValidators(b *testing.B) {
