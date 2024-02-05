@@ -27,7 +27,7 @@ import (
 	errortypes "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/xpladev/ethermint/ethereum/eip712"
-	tmcrypto "github.com/tendermint/tendermint/crypto"
+	tmcrypto "github.com/cometbft/cometbft/crypto"
 )
 
 const (

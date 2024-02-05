@@ -12,7 +12,7 @@ import (
 	"github.com/xpladev/ethermint/rpc/backend/mocks"
 	ethermint "github.com/xpladev/ethermint/types"
 	"github.com/spf13/viper"
-	tmrpcclient "github.com/tendermint/tendermint/rpc/client"
+	tmrpcclient "github.com/cometbft/cometbft/rpc/client"
 	"google.golang.org/grpc/metadata"
 )
 

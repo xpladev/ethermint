@@ -29,7 +29,7 @@ import (
 	ethermint "github.com/xpladev/ethermint/types"
 	evmtypes "github.com/xpladev/ethermint/x/evm/types"
 	feemarkettypes "github.com/xpladev/ethermint/x/feemarket/types"
-	tmrpctypes "github.com/tendermint/tendermint/rpc/core/types"
+	tmrpctypes "github.com/cometbft/cometbft/rpc/core/types"
 )
 
 // ChainID is the EIP-155 replay-protection chain id for the current ethereum chain config.

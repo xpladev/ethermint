@@ -32,7 +32,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/spf13/cobra"
-	abci "github.com/tendermint/tendermint/abci/types"
+	abci "github.com/cometbft/cometbft/abci/types"
 
 	"github.com/xpladev/ethermint/x/erc20/client/cli"
 	"github.com/xpladev/ethermint/x/erc20/keeper"

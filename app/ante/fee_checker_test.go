@@ -15,8 +15,8 @@ import (
 	ethermint "github.com/xpladev/ethermint/types"
 	"github.com/xpladev/ethermint/x/evm/types"
 	evmtypes "github.com/xpladev/ethermint/x/evm/types"
-	"github.com/tendermint/tendermint/libs/log"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+	"github.com/cometbft/cometbft/libs/log"
+	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 )
 
 var _ DynamicFeeEVMKeeper = MockEVMKeeper{}

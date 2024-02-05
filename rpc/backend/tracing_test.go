@@ -10,11 +10,11 @@ import (
 	"github.com/xpladev/ethermint/indexer"
 	"github.com/xpladev/ethermint/rpc/backend/mocks"
 	evmtypes "github.com/xpladev/ethermint/x/evm/types"
-	abci "github.com/tendermint/tendermint/abci/types"
-	tmlog "github.com/tendermint/tendermint/libs/log"
-	tmrpctypes "github.com/tendermint/tendermint/rpc/core/types"
-	"github.com/tendermint/tendermint/types"
-	tmtypes "github.com/tendermint/tendermint/types"
+	abci "github.com/cometbft/cometbft/abci/types"
+	tmlog "github.com/cometbft/cometbft/libs/log"
+	tmrpctypes "github.com/cometbft/cometbft/rpc/core/types"
+	"github.com/cometbft/cometbft/types"
+	tmtypes "github.com/cometbft/cometbft/types"
 	dbm "github.com/tendermint/tm-db"
 )
 

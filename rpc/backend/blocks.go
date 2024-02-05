@@ -30,7 +30,7 @@ import (
 	rpctypes "github.com/xpladev/ethermint/rpc/types"
 	evmtypes "github.com/xpladev/ethermint/x/evm/types"
 	"github.com/pkg/errors"
-	tmrpctypes "github.com/tendermint/tendermint/rpc/core/types"
+	tmrpctypes "github.com/cometbft/cometbft/rpc/core/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 )

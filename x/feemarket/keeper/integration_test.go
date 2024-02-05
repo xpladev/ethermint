@@ -27,8 +27,8 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/simapp"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/libs/log"
+	abci "github.com/cometbft/cometbft/abci/types"
+	"github.com/cometbft/cometbft/libs/log"
 	dbm "github.com/tendermint/tm-db"
 	evmtypes "github.com/xpladev/ethermint/x/evm/types"
 )

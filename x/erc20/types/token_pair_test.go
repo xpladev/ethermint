@@ -8,7 +8,7 @@ import (
 	utiltx "github.com/xpladev/ethermint/testutil/tx"
 	"github.com/xpladev/ethermint/x/erc20/types"
 	"github.com/stretchr/testify/suite"
-	"github.com/tendermint/tendermint/crypto/tmhash"
+	"github.com/cometbft/cometbft/crypto/tmhash"
 )
 
 type TokenPairTestSuite struct {

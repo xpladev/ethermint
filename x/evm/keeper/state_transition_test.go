@@ -16,9 +16,9 @@ import (
 	"github.com/xpladev/ethermint/x/evm/keeper"
 	"github.com/xpladev/ethermint/x/evm/statedb"
 	"github.com/xpladev/ethermint/x/evm/types"
-	"github.com/tendermint/tendermint/crypto/tmhash"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
-	tmtypes "github.com/tendermint/tendermint/types"
+	"github.com/cometbft/cometbft/crypto/tmhash"
+	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
+	tmtypes "github.com/cometbft/cometbft/types"
 )
 
 func (suite *KeeperTestSuite) TestGetHashFn() {

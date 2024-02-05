@@ -29,7 +29,7 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/params"
-	"github.com/tendermint/tendermint/libs/log"
+	"github.com/cometbft/cometbft/libs/log"
 
 	ethermint "github.com/xpladev/ethermint/types"
 	"github.com/xpladev/ethermint/x/evm/statedb"

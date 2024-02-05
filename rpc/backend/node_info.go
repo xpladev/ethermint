@@ -38,7 +38,7 @@ import (
 	"github.com/xpladev/ethermint/server/config"
 	ethermint "github.com/xpladev/ethermint/types"
 	evmtypes "github.com/xpladev/ethermint/x/evm/types"
-	tmtypes "github.com/tendermint/tendermint/types"
+	tmtypes "github.com/cometbft/cometbft/types"
 )
 
 // Accounts returns the list of accounts available to this node.
