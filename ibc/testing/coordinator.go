@@ -25,7 +25,8 @@ import (
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	ibctesting "github.com/cosmos/ibc-go/v7/testing"
-	ibchelpers "github.com/cosmos/ibc-go/v7/testing/simapp/helpers"
+	//ibchelpers "github.com/cosmos/ibc-go/v7/testing/simapp/helpers"
+	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	"github.com/xpladev/ethermint/app"
 	"github.com/stretchr/testify/require"
 )
@@ -187,7 +188,7 @@ func SignAndDeliver(
 	fee sdk.Coins,
 	chainID string, accNums, accSeqs []uint64, expPass bool, priv ...cryptotypes.PrivKey,
 ) (sdk.GasInfo, *sdk.Result, error) {
-	tx, err := ibchelpers.GenTx(
+	/*tx, err := ibchelpers.GenTx(
 		txCfg,
 		msgs,
 		fee,
@@ -196,7 +197,18 @@ func SignAndDeliver(
 		accNums,
 		accSeqs,
 		priv...,
-	)
+	)*/
+	tx, err := simtestutil.GenSignedMockTx(
+                rand.New(rand.NewSource(time.Now().UnixNano())),
+                txCfg,
+                msgs,
+                sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom, 0)},
+                simtestutil.DefaultGenTxGas,
+                chainID,
+                accNums,
+                accSeqs,
+                priv...,
+        )
 	require.NoError(t, err)
 
 	// Simulate a sending a transaction
