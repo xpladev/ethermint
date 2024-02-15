@@ -19,6 +19,7 @@ package ibctesting
 import (
 	"testing"
 	"time"
+	"math/rand"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client"
