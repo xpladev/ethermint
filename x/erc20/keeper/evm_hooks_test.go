@@ -7,6 +7,7 @@ import (
 	sdkmath "cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
 	"github.com/xpladev/ethermint/contracts"
@@ -205,20 +206,19 @@ func (suite *KeeperTestSuite) TestPostTxProcessing() {
 		pair    *types.TokenPair
 	)
 
-	msg := ethtypes.NewMessage(
-		types.ModuleAddress,
-		&common.Address{},
-		0,
-		big.NewInt(0), // amount
-		uint64(0),     // gasLimit
-		big.NewInt(0), // gasFeeCap
-		big.NewInt(0), // gasTipCap
-		big.NewInt(0), // gasPrice
-		[]byte{},
-		ethtypes.AccessList{}, // AccessList
-		true,                  // checkNonce
-	)
-
+	msg := core.Message{
+		From:              types.ModuleAddress,
+		To:                &common.Address{},
+		Nonce:             0,
+		Value:             big.NewInt(0),
+		GasLimit:          0,
+		GasFeeCap:         big.NewInt(0),
+		GasTipCap:         big.NewInt(0),
+		GasPrice:          big.NewInt(0),
+		Data:              []byte{},
+		AccessList:        ethtypes.AccessList{},
+		SkipAccountChecks: true,
+	}
 	account := utiltx.GenerateAddress()
 
 	transferData := []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
@@ -245,7 +245,7 @@ func (suite *KeeperTestSuite) TestPostTxProcessing() {
 		{
 			"No log data",
 			func() {
-				topics := []common.Hash{transferEvent.ID, account.Hash(), types.ModuleAddress.Hash()}
+				topics := []common.Hash{transferEvent.ID, common.BytesToHash(account[:]), common.BytesToHash(account[:])}
 				log := ethtypes.Log{
 					Topics: topics,
 				}
@@ -258,7 +258,7 @@ func (suite *KeeperTestSuite) TestPostTxProcessing() {
 		{
 			"Non recognized event",
 			func() {
-				topics := []common.Hash{{}, account.Hash(), account.Hash()}
+				topics := []common.Hash{{}, common.BytesToHash(account[:]), common.BytesToHash(account[:])}
 				log := ethtypes.Log{
 					Topics: topics,
 					Data:   transferData,
@@ -273,7 +273,7 @@ func (suite *KeeperTestSuite) TestPostTxProcessing() {
 			"Non transfer event",
 			func() {
 				aprovalEvent := erc20.Events["Approval"]
-				topics := []common.Hash{aprovalEvent.ID, account.Hash(), account.Hash()}
+				topics := []common.Hash{aprovalEvent.ID, common.BytesToHash(account[:]), common.BytesToHash(account[:])}
 				log := ethtypes.Log{
 					Topics: topics,
 					Data:   transferData,
@@ -287,7 +287,7 @@ func (suite *KeeperTestSuite) TestPostTxProcessing() {
 		{
 			"No log address",
 			func() {
-				topics := []common.Hash{transferEvent.ID, account.Hash(), types.ModuleAddress.Hash()}
+				topics := []common.Hash{transferEvent.ID, common.BytesToHash(account[:]), common.BytesToHash(types.ModuleAddress[:])}
 				log := ethtypes.Log{
 					Topics: topics,
 					Data:   transferData,
@@ -321,7 +321,7 @@ func (suite *KeeperTestSuite) TestPostTxProcessing() {
 				_, err = suite.app.Erc20Keeper.RegisterERC20(suite.ctx, contractAddr)
 				suite.Require().NoError(err)
 
-				topics := []common.Hash{transferEvent.ID, account.Hash(), account.Hash()}
+				topics := []common.Hash{transferEvent.ID, common.BytesToHash(account[:]), common.BytesToHash(account[:])}
 				log := ethtypes.Log{
 					Topics:  topics,
 					Data:    transferData,
@@ -342,7 +342,7 @@ func (suite *KeeperTestSuite) TestPostTxProcessing() {
 				pair, err = suite.app.Erc20Keeper.RegisterERC20(suite.ctx, contractAddr)
 				suite.Require().NoError(err)
 
-				topics := []common.Hash{transferEvent.ID, account.Hash(), types.ModuleAddress.Hash()}
+				topics := []common.Hash{transferEvent.ID, common.BytesToHash(account[:]), common.BytesToHash(types.ModuleAddress[:])}
 				log := ethtypes.Log{
 					Topics:  topics,
 					Data:    transferData,
@@ -366,7 +366,7 @@ func (suite *KeeperTestSuite) TestPostTxProcessing() {
 				pair.ContractOwner = types.OWNER_UNSPECIFIED
 				suite.app.Erc20Keeper.SetTokenPair(suite.ctx, *pair)
 
-				topics := []common.Hash{transferEvent.ID, account.Hash(), types.ModuleAddress.Hash()}
+				topics := []common.Hash{transferEvent.ID, common.BytesToHash(account[:]), common.BytesToHash(types.ModuleAddress[:])}
 				log := ethtypes.Log{
 					Topics:  topics,
 					Data:    transferData,
@@ -390,7 +390,7 @@ func (suite *KeeperTestSuite) TestPostTxProcessing() {
 				pair.ContractOwner = types.OWNER_MODULE
 				suite.app.Erc20Keeper.SetTokenPair(suite.ctx, *pair)
 
-				topics := []common.Hash{transferEvent.ID, account.Hash(), types.ModuleAddress.Hash()}
+				topics := []common.Hash{transferEvent.ID, common.BytesToHash(account[:]), common.BytesToHash(types.ModuleAddress[:])}
 				log := ethtypes.Log{
 					Topics:  topics,
 					Data:    transferData,

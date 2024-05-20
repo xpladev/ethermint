@@ -5,6 +5,7 @@ import (
 	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
+	v3types "github.com/xpladev/ethermint/x/evm/migrations/v3/types"
 	v4types "github.com/xpladev/ethermint/x/evm/migrations/v4/types"
 	"github.com/xpladev/ethermint/x/evm/types"
 )
@@ -18,7 +19,7 @@ func MigrateStore(
 	legacySubspace types.Subspace,
 	cdc codec.BinaryCodec,
 ) error {
-	var params types.Params
+	var params v3types.Params
 
 	legacySubspace.GetParamSetIfExists(ctx, &params)
 

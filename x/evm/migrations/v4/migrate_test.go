@@ -11,20 +11,21 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/xpladev/ethermint/app"
 	"github.com/xpladev/ethermint/encoding"
+	v3types "github.com/xpladev/ethermint/x/evm/migrations/v3/types"
 	v4 "github.com/xpladev/ethermint/x/evm/migrations/v4"
 	v4types "github.com/xpladev/ethermint/x/evm/migrations/v4/types"
 )
 
 type mockSubspace struct {
-	ps types.Params
+	ps v3types.Params
 }
 
-func newMockSubspace(ps types.Params) mockSubspace {
+func newMockSubspace(ps v3types.Params) mockSubspace {
 	return mockSubspace{ps: ps}
 }
 
 func (ms mockSubspace) GetParamSetIfExists(ctx sdk.Context, ps types.LegacyParams) {
-	*ps.(*types.Params) = ms.ps
+	*ps.(*v3types.Params) = ms.ps
 }
 
 func TestMigrate(t *testing.T) {
@@ -36,7 +37,7 @@ func TestMigrate(t *testing.T) {
 	ctx := testutil.DefaultContext(storeKey, tKey)
 	kvStore := ctx.KVStore(storeKey)
 
-	legacySubspace := newMockSubspace(types.DefaultParams())
+	legacySubspace := newMockSubspace(v3types.DefaultParams())
 	require.NoError(t, v4.MigrateStore(ctx, storeKey, legacySubspace, cdc))
 
 	// Get all the new parameters from the kvStore

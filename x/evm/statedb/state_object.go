@@ -1,5 +1,5 @@
-// Copyright 2021 Evmos Foundation
-// This file is part of Evmos' Ethermint library.
+// Copyright 2014 The go-ethereum Authors
+// This file is part of the go-ethereum library.
 //
 // The Ethermint library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -12,43 +12,58 @@
 // GNU Lesser General Public License for more details.
 //
 // You should have received a copy of the GNU Lesser General Public License
-// along with the Ethermint library. If not, see https://github.com/xpladev/ethermint/blob/main/LICENSE
+// along with the Ethermint library. If not, see <http://www.gnu.org/licenses/>.
+
 package statedb
 
 import (
 	"bytes"
-	"math/big"
+	"fmt"
 	"sort"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/holiman/uint256"
 )
-
-var emptyCodeHash = crypto.Keccak256(nil)
 
 // Account is the Ethereum consensus representation of accounts.
 // These objects are stored in the storage of auth module.
 type Account struct {
 	Nonce    uint64
-	Balance  *big.Int
+	Balance  *uint256.Int
 	CodeHash []byte
 }
 
 // NewEmptyAccount returns an empty account.
 func NewEmptyAccount() *Account {
 	return &Account{
-		Balance:  new(big.Int),
-		CodeHash: emptyCodeHash,
+		Balance:  new(uint256.Int),
+		CodeHash: types.EmptyCodeHash.Bytes(),
 	}
 }
 
 // IsContract returns if the account contains contract code.
 func (acct Account) IsContract() bool {
-	return !bytes.Equal(acct.CodeHash, emptyCodeHash)
+	return !bytes.Equal(acct.CodeHash, types.EmptyCodeHash.Bytes())
 }
 
 // Storage represents in-memory cache/buffer of contract storage.
 type Storage map[common.Hash]common.Hash
+
+func (s Storage) String() (str string) {
+	for key, value := range s {
+		str += fmt.Sprintf("%X : %X\n", key, value)
+	}
+	return
+}
+
+func (s Storage) Copy() Storage {
+	cpy := make(Storage, len(s))
+	for key, value := range s {
+		cpy[key] = value
+	}
+	return cpy
+}
 
 // SortedKeys sort the keys for deterministic iteration
 func (s Storage) SortedKeys() []common.Hash {
@@ -64,36 +79,49 @@ func (s Storage) SortedKeys() []common.Hash {
 	return keys
 }
 
-// stateObject is the state of an acount
+// stateObject represents an Ethereum account which is being modified.
+//
+// The usage pattern is as follows:
+// - First you need to obtain a state object.
+// - Account values as well as storages can be accessed and modified through the object.
+// - Finally, call commit to return the changes of storage trie and update account data.
 type stateObject struct {
 	db *StateDB
 
-	account Account
-	code    []byte
+	origin *Account // Account original data without any change applied, nil means it was not existent
+	data   Account  // Account data with all mutations applied in the scope of block
+	code   []byte
 
-	// state storage
-	originStorage Storage
-	dirtyStorage  Storage
+	originStorage Storage // Storage cache of original entries to dedup rewrites
+	dirtyStorage  Storage // Storage entries that have been modified in the current transaction execution, reset for every transaction
 
 	address common.Address
 
-	// flags
-	dirtyCode bool
-	suicided  bool
+	// Cache flags.
+	dirtyCode bool // true if the code was updated
+
+	// Flag whether the account was marked as self-destructed. The self-destructed account
+	// is still accessible in the scope of same transaction.
+	selfDestructed bool
 }
 
 // newObject creates a state object.
-func newObject(db *StateDB, address common.Address, account Account) *stateObject {
-	if account.Balance == nil {
-		account.Balance = new(big.Int)
+func newObject(db *StateDB, address common.Address, acct *Account) *stateObject {
+	var (
+		origin = acct
+	)
+	if acct == nil {
+		acct = NewEmptyAccount()
 	}
-	if account.CodeHash == nil {
-		account.CodeHash = emptyCodeHash
+
+	if acct.CodeHash == nil {
+		acct.CodeHash = types.EmptyCodeHash.Bytes()
 	}
 	return &stateObject{
 		db:            db,
 		address:       address,
-		account:       account,
+		origin:        origin,
+		data:          *acct,
 		originStorage: make(Storage),
 		dirtyStorage:  make(Storage),
 	}
@@ -101,49 +129,48 @@ func newObject(db *StateDB, address common.Address, account Account) *stateObjec
 
 // empty returns whether the account is considered empty.
 func (s *stateObject) empty() bool {
-	return s.account.Nonce == 0 && s.account.Balance.Sign() == 0 && bytes.Equal(s.account.CodeHash, emptyCodeHash)
+	return s.data.Nonce == 0 && s.data.Balance.IsZero() && bytes.Equal(s.data.CodeHash, types.EmptyCodeHash.Bytes())
 }
 
-func (s *stateObject) markSuicided() {
-	s.suicided = true
+func (s *stateObject) markSelfdestructed() {
+	s.selfDestructed = true
 }
 
 // AddBalance adds amount to s's balance.
 // It is used to add funds to the destination account of a transfer.
-func (s *stateObject) AddBalance(amount *big.Int) {
-	if amount.Sign() == 0 {
+func (s *stateObject) AddBalance(amount *uint256.Int) {
+	if amount.IsZero() {
 		return
 	}
-	s.SetBalance(new(big.Int).Add(s.Balance(), amount))
+	s.SetBalance(new(uint256.Int).Add(s.Balance(), amount))
 }
 
 // SubBalance removes amount from s's balance.
 // It is used to remove funds from the origin account of a transfer.
-func (s *stateObject) SubBalance(amount *big.Int) {
-	if amount.Sign() == 0 {
+func (s *stateObject) SubBalance(amount *uint256.Int) {
+	if amount.IsZero() {
 		return
 	}
-	s.SetBalance(new(big.Int).Sub(s.Balance(), amount))
+	s.SetBalance(new(uint256.Int).Sub(s.Balance(), amount))
 }
 
-// SetBalance update account balance.
-func (s *stateObject) SetBalance(amount *big.Int) {
+func (s *stateObject) SetBalance(amount *uint256.Int) {
 	s.db.journal.append(balanceChange{
 		account: &s.address,
-		prev:    new(big.Int).Set(s.account.Balance),
+		prev:    new(uint256.Int).Set(s.data.Balance),
 	})
 	s.setBalance(amount)
 }
 
-func (s *stateObject) setBalance(amount *big.Int) {
-	s.account.Balance = amount
+func (s *stateObject) setBalance(amount *uint256.Int) {
+	s.data.Balance = amount
 }
 
 //
 // Attribute accessors
 //
 
-// Returns the address of the contract/account
+// Address returns the address of the contract/account
 func (s *stateObject) Address() common.Address {
 	return s.address
 }
@@ -153,7 +180,7 @@ func (s *stateObject) Code() []byte {
 	if s.code != nil {
 		return s.code
 	}
-	if bytes.Equal(s.CodeHash(), emptyCodeHash) {
+	if bytes.Equal(s.CodeHash(), types.EmptyCodeHash.Bytes()) {
 		return nil
 	}
 	code := s.db.keeper.GetCode(s.db.ctx, common.BytesToHash(s.CodeHash()))
@@ -162,12 +189,12 @@ func (s *stateObject) Code() []byte {
 }
 
 // CodeSize returns the size of the contract code associated with this object,
-// or zero if none.
+// or zero if none. This method is an almost mirror of Code, but uses a cache
+// inside the database to avoid loading codes seen recently.
 func (s *stateObject) CodeSize() int {
 	return len(s.Code())
 }
 
-// SetCode set contract code to account
 func (s *stateObject) SetCode(codeHash common.Hash, code []byte) {
 	prevcode := s.Code()
 	s.db.journal.append(codeChange{
@@ -180,39 +207,35 @@ func (s *stateObject) SetCode(codeHash common.Hash, code []byte) {
 
 func (s *stateObject) setCode(codeHash common.Hash, code []byte) {
 	s.code = code
-	s.account.CodeHash = codeHash[:]
+	s.data.CodeHash = codeHash[:]
 	s.dirtyCode = true
 }
 
-// SetCode set nonce to account
 func (s *stateObject) SetNonce(nonce uint64) {
 	s.db.journal.append(nonceChange{
 		account: &s.address,
-		prev:    s.account.Nonce,
+		prev:    s.data.Nonce,
 	})
 	s.setNonce(nonce)
 }
 
 func (s *stateObject) setNonce(nonce uint64) {
-	s.account.Nonce = nonce
+	s.data.Nonce = nonce
 }
 
-// CodeHash returns the code hash of account
 func (s *stateObject) CodeHash() []byte {
-	return s.account.CodeHash
+	return s.data.CodeHash
 }
 
-// Balance returns the balance of account
-func (s *stateObject) Balance() *big.Int {
-	return s.account.Balance
+func (s *stateObject) Balance() *uint256.Int {
+	return s.data.Balance
 }
 
-// Nonce returns the nonce of account
 func (s *stateObject) Nonce() uint64 {
-	return s.account.Nonce
+	return s.data.Nonce
 }
 
-// GetCommittedState query the committed state
+// GetCommittedState retrieves a value from the committed account storage trie.
 func (s *stateObject) GetCommittedState(key common.Hash) common.Hash {
 	if value, cached := s.originStorage[key]; cached {
 		return value
@@ -223,16 +246,19 @@ func (s *stateObject) GetCommittedState(key common.Hash) common.Hash {
 	return value
 }
 
-// GetState query the current state (including dirty state)
+// GetState retrieves a value from the account storage trie.
 func (s *stateObject) GetState(key common.Hash) common.Hash {
-	if value, dirty := s.dirtyStorage[key]; dirty {
+	// If we have a dirty value for this state entry, return it
+	value, dirty := s.dirtyStorage[key]
+	if dirty {
 		return value
 	}
+	// Otherwise return the entry's original value
 	return s.GetCommittedState(key)
 }
 
-// SetState sets the contract state
-func (s *stateObject) SetState(key common.Hash, value common.Hash) {
+// SetState updates a value in account storage.
+func (s *stateObject) SetState(key, value common.Hash) {
 	// If the new value is the same as old, don't set
 	prev := s.GetState(key)
 	if prev == value {

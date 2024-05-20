@@ -5,6 +5,7 @@ import (
 	"math/big"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/holiman/uint256"
 
 	"github.com/xpladev/ethermint/app/ante"
 	"github.com/xpladev/ethermint/server/config"
@@ -75,7 +76,7 @@ func (suite AnteTestSuite) TestNewEthAccountVerificationDecorator() {
 			"success new account",
 			tx,
 			func() {
-				vmdb.AddBalance(addr, big.NewInt(1000000))
+				vmdb.AddBalance(addr, uint256.NewInt(1000000))
 			},
 			true,
 			true,
@@ -87,7 +88,7 @@ func (suite AnteTestSuite) TestNewEthAccountVerificationDecorator() {
 				acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr.Bytes())
 				suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 
-				vmdb.AddBalance(addr, big.NewInt(1000000))
+				vmdb.AddBalance(addr, uint256.NewInt(1000000))
 			},
 			true,
 			true,
@@ -291,7 +292,7 @@ func (suite AnteTestSuite) TestEthGasConsumeDecorator() {
 			tx2,
 			0,
 			func() {
-				vmdb.AddBalance(addr, big.NewInt(1000000))
+				vmdb.AddBalance(addr, uint256.NewInt(1000000))
 			},
 			false, true,
 			0,
@@ -301,7 +302,7 @@ func (suite AnteTestSuite) TestEthGasConsumeDecorator() {
 			tx2,
 			0,
 			func() {
-				vmdb.AddBalance(addr, big.NewInt(1000000))
+				vmdb.AddBalance(addr, uint256.NewInt(1000000))
 				suite.ctx = suite.ctx.WithBlockGasMeter(sdk.NewGasMeter(1))
 			},
 			false, true,
@@ -312,7 +313,7 @@ func (suite AnteTestSuite) TestEthGasConsumeDecorator() {
 			tx2,
 			tx2GasLimit, // it's capped
 			func() {
-				vmdb.AddBalance(addr, big.NewInt(1001000000000000))
+				vmdb.AddBalance(addr, uint256.NewInt(1001000000000000))
 				suite.ctx = suite.ctx.WithBlockGasMeter(sdk.NewGasMeter(10000000000000000000))
 			},
 			true, false,
@@ -323,7 +324,7 @@ func (suite AnteTestSuite) TestEthGasConsumeDecorator() {
 			dynamicFeeTx,
 			tx2GasLimit, // it's capped
 			func() {
-				vmdb.AddBalance(addr, big.NewInt(1001000000000000))
+				vmdb.AddBalance(addr, uint256.NewInt(1001000000000000))
 				suite.ctx = suite.ctx.WithBlockGasMeter(sdk.NewGasMeter(10000000000000000000))
 			},
 			true, false,
@@ -334,7 +335,7 @@ func (suite AnteTestSuite) TestEthGasConsumeDecorator() {
 			dynamicFeeTx,
 			0, // for reCheckTX mode, gas limit should be set to 0
 			func() {
-				vmdb.AddBalance(addr, big.NewInt(1001000000000000))
+				vmdb.AddBalance(addr, uint256.NewInt(1001000000000000))
 				suite.ctx = suite.ctx.WithIsReCheckTx(true)
 			},
 			true, false,
@@ -418,7 +419,7 @@ func (suite AnteTestSuite) TestCanTransferDecorator() {
 				acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr.Bytes())
 				suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 
-				vmdb.AddBalance(addr, big.NewInt(1000000))
+				vmdb.AddBalance(addr, uint256.NewInt(1000000))
 			},
 			true,
 		},
