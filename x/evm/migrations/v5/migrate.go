@@ -6,6 +6,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/xpladev/ethermint/x/evm/types"
 
+	v4types "github.com/xpladev/ethermint/x/evm/migrations/v4/types"
 	v5types "github.com/xpladev/ethermint/x/evm/migrations/v5/types"
 )
 
@@ -19,9 +20,9 @@ func MigrateStore(
 	cdc codec.BinaryCodec,
 ) error {
 	var (
-		extraEIPs   v5types.V5ExtraEIPs
-		chainConfig types.ChainConfig
-		params      types.Params
+		extraEIPs   v4types.ExtraEIPs
+		chainConfig v4types.V4ChainConfig
+		params      v5types.Params
 	)
 
 	store := ctx.KVStore(storeKey)
@@ -30,11 +31,6 @@ func MigrateStore(
 
 	extraEIPsBz := store.Get(types.ParamStoreKeyExtraEIPs)
 	cdc.MustUnmarshal(extraEIPsBz, &extraEIPs)
-
-	// revert ExtraEIP change for Ethermint testnet
-	if ctx.ChainID() == "ethermint_9000-4" {
-		extraEIPs.EIPs = []int64{}
-	}
 
 	chainCfgBz := store.Get(types.ParamStoreKeyChainConfig)
 	cdc.MustUnmarshal(chainCfgBz, &chainConfig)

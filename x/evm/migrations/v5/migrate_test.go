@@ -9,8 +9,8 @@ import (
 
 	"github.com/xpladev/ethermint/app"
 	"github.com/xpladev/ethermint/encoding"
+	v4types "github.com/xpladev/ethermint/x/evm/migrations/v4/types"
 	v5 "github.com/xpladev/ethermint/x/evm/migrations/v5"
-	v5types "github.com/xpladev/ethermint/x/evm/migrations/v5/types"
 	"github.com/xpladev/ethermint/x/evm/types"
 )
 
@@ -23,7 +23,7 @@ func TestMigrate(t *testing.T) {
 	ctx := testutil.DefaultContext(storeKey, tKey)
 	kvStore := ctx.KVStore(storeKey)
 
-	extraEIPs := v5types.V5ExtraEIPs{EIPs: types.AvailableExtraEIPs}
+	extraEIPs := v4types.ExtraEIPs{EIPs: types.AvailableExtraEIPs}
 	extraEIPsBz := cdc.MustMarshal(&extraEIPs)
 	chainConfig := types.DefaultChainConfig()
 	chainConfigBz := cdc.MustMarshal(&chainConfig)
