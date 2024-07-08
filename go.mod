@@ -20,6 +20,7 @@ require (
 	github.com/cosmos/ibc-go/v7 v7.3.2
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/ethereum/go-ethereum v1.13.15
+	github.com/gogo/protobuf v1.3.2
 	github.com/golang/protobuf v1.5.4
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.5.0
@@ -121,7 +122,6 @@ require (
 	github.com/godbus/dbus v0.0.0-20190726142602-4481cbc300e2 // indirect
 	github.com/gofrs/flock v0.8.1 // indirect
 	github.com/gogo/googleapis v1.4.1 // indirect
-	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/glog v1.2.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/mock v1.6.0 // indirect
@@ -239,6 +239,7 @@ require (
 replace (
 	// use cosmos keyring
 	github.com/99designs/keyring => github.com/cosmos/keyring v1.2.0
+	github.com/cosmos/cosmos-sdk => github.com/xpladev/cosmos-sdk v0.47.11-0.20240708070332-6298657d15be
 	// dgrijalva/jwt-go is deprecated and doesn't receive security updates.
 	// TODO: remove it: https://github.com/cosmos/cosmos-sdk/issues/13134
 	github.com/dgrijalva/jwt-go => github.com/golang-jwt/jwt/v4 v4.4.2
