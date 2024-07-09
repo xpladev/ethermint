@@ -19,6 +19,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/xpladev/ethermint/x/evm/types"
 )
@@ -59,4 +60,6 @@ type EVMConfig struct {
 	ChainConfig *params.ChainConfig
 	CoinBase    common.Address
 	BaseFee     *big.Int
+	Tracer      vm.EVMLogger
+	Rules       params.Rules
 }

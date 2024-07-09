@@ -4,11 +4,11 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"math/big"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/holiman/uint256"
 	"github.com/xpladev/ethermint/app"
 
 	"github.com/stretchr/testify/require"
@@ -21,6 +21,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus/ethash"
+	"github.com/ethereum/go-ethereum/core"
 	ethcore "github.com/ethereum/go-ethereum/core"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethvm "github.com/ethereum/go-ethereum/core/vm"
@@ -39,8 +40,8 @@ import (
 var (
 	flagBlockchain string
 
-	rewardBig8  = big.NewInt(8)
-	rewardBig32 = big.NewInt(32)
+	rewardBig8  = uint256.NewInt(8)
+	rewardBig32 = uint256.NewInt(32)
 )
 
 func init() {
@@ -184,12 +185,12 @@ func accumulateRewards(
 	}
 
 	// accumulate the rewards for the miner and any included uncles
-	reward := new(big.Int).Set(blockReward)
-	r := new(big.Int)
+	reward := new(uint256.Int).Set(blockReward)
+	r := new(uint256.Int)
 
 	for _, uncle := range uncles {
-		r.Add(uncle.Number, rewardBig8)
-		r.Sub(r, header.Number)
+		r.Add(uint256.MustFromBig(uncle.Number), rewardBig8)
+		r.Sub(r, uint256.MustFromBig(header.Number))
 		r.Mul(r, blockReward)
 		r.Div(r, rewardBig8)
 		vmdb.AddBalance(uncle.Coinbase, r)
@@ -229,7 +230,7 @@ func applyTransaction(
 	gp *ethcore.GasPool, evmKeeper *evmkeeper.Keeper, vmdb *statedb.StateDB, header *ethtypes.Header,
 	tx *ethtypes.Transaction, usedGas *uint64, cfg ethvm.Config,
 ) (*ethtypes.Receipt, uint64, error) {
-	msg, err := tx.AsMessage(ethtypes.MakeSigner(config, header.Number), sdk.ZeroInt().BigInt())
+	msg, err := core.TransactionToMessage(tx, ethtypes.MakeSigner(config, header.Number, header.Time), sdk.ZeroInt().BigInt())
 	if err != nil {
 		return nil, 0, err
 	}
@@ -259,7 +260,7 @@ func applyTransaction(
 	receipt.GasUsed = execResult.UsedGas
 
 	// if the transaction created a contract, store the creation address in the receipt.
-	if msg.To() == nil {
+	if msg.To == nil {
 		receipt.ContractAddress = crypto.CreateAddress(vmenv.TxContext.Origin, tx.Nonce())
 	}
 
