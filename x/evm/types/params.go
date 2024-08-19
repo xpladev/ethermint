@@ -19,10 +19,9 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/params"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/ethereum/go-ethereum/core/vm"
+	"github.com/ethereum/go-ethereum/params"
 	"github.com/xpladev/ethermint/types"
 )
 
@@ -128,7 +127,7 @@ func validateEIPs(i interface{}) error {
 
 	for _, eip := range eips {
 		if !vm.ValidEip(int(eip)) {
-			return fmt.Errorf("EIP %d is not activateable, valid EIPS are: %s", eip, vm.ActivateableEips())
+			return fmt.Errorf("EIP %d is not activateable, valid EIPs are: %s", eip, vm.ActivateableEips())
 		}
 	}
 

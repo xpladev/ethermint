@@ -21,6 +21,8 @@ import (
 
 	"github.com/spf13/cobra"
 
+	sdkmath "cosmossdk.io/math"
+
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/tx"
@@ -117,7 +119,7 @@ func NewConvertERC20Cmd() *cobra.Command {
 				return fmt.Errorf("invalid ERC20 contract address %w", err)
 			}
 
-			amount, ok := sdk.NewIntFromString(args[1])
+			amount, ok := sdkmath.NewIntFromString(args[1])
 			if !ok {
 				return fmt.Errorf("invalid amount %s", args[1])
 			}
@@ -227,10 +229,6 @@ Where metadata.json contains (example):
 				return err
 			}
 
-			if err := msg.ValidateBasic(); err != nil {
-				return err
-			}
-
 			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
 		},
 	}
@@ -295,10 +293,6 @@ func NewRegisterERC20ProposalCmd() *cobra.Command {
 				return err
 			}
 
-			if err := msg.ValidateBasic(); err != nil {
-				return err
-			}
-
 			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
 		},
 	}
@@ -360,10 +354,6 @@ func NewToggleTokenConversionProposalCmd() *cobra.Command {
 
 			msg, err := govv1beta1.NewMsgSubmitProposal(content, deposit, from)
 			if err != nil {
-				return err
-			}
-
-			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
 

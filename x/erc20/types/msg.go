@@ -17,13 +17,19 @@
 package types
 
 import (
+	"fmt"
+
+	protov2 "google.golang.org/protobuf/proto"
+
 	errorsmod "cosmossdk.io/errors"
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	errortypes "github.com/cosmos/cosmos-sdk/types/errors"
 
-	ibctransfertypes "github.com/cosmos/ibc-go/v7/modules/apps/transfer/types"
+	ibctransfertypes "github.com/cosmos/ibc-go/v8/modules/apps/transfer/types"
 	"github.com/ethereum/go-ethereum/common"
+
+	erc20api "github.com/xpladev/ethermint/api/evmos/erc20/v1"
 )
 
 var (
@@ -127,6 +133,18 @@ func (msg MsgConvertERC20) GetSignBytes() []byte {
 func (msg MsgConvertERC20) GetSigners() []sdk.AccAddress {
 	addr := common.HexToAddress(msg.Sender)
 	return []sdk.AccAddress{addr.Bytes()}
+}
+
+// GetSignersV2 returns the signer of protov2 message
+func GetSignersV2(msg protov2.Message) ([][]byte, error) {
+	msgERC20, ok := msg.(*erc20api.MsgConvertERC20)
+	if !ok {
+		return nil, fmt.Errorf("invalid msg type for erc20api.MsgConvertERC20, %T", msg)
+	}
+
+	sender := common.HexToAddress(msgERC20.Sender)
+
+	return [][]byte{sender.Bytes()}, nil
 }
 
 // GetSigners returns the expected signers for a MsgUpdateParams message.

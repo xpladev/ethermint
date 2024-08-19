@@ -12,6 +12,7 @@ option go_package = "github.com/xpladev/ethermint/x/erc20/types";
 
 // Msg defines the erc20 Msg service.
 service Msg {
+  option (cosmos.msg.v1.service) = true;
   // ConvertCoin mints a ERC20 representation of the native Cosmos coin denom
   // that is registered on the token mapping.
   rpc ConvertCoin(MsgConvertCoin) returns (MsgConvertCoinResponse) {
@@ -29,6 +30,7 @@ service Msg {
 
 // MsgConvertCoin defines a Msg to convert a native Cosmos coin to a ERC20 token
 message MsgConvertCoin {
+  option (cosmos.msg.v1.signer) = "sender";
   // coin is a Cosmos coin whose denomination is registered in a token pair. The coin
   // amount defines the amount of coins to convert.
   cosmos.base.v1beta1.Coin coin = 1 [(gogoproto.nullable) = false];

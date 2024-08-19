@@ -17,11 +17,11 @@ package cli
 
 import (
 	"github.com/spf13/cobra"
-	rpctypes "github.com/xpladev/ethermint/rpc/types"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/flags"
 
+	rpctypes "github.com/xpladev/ethermint/rpc/types"
 	"github.com/xpladev/ethermint/x/evm/types"
 )
 

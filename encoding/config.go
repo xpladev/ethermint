@@ -16,32 +16,69 @@
 package encoding
 
 import (
-	"cosmossdk.io/simapp/params"
+	protov2 "google.golang.org/protobuf/proto"
+
+	"cosmossdk.io/x/tx/signing"
 
 	amino "github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/codec/address"
 	"github.com/cosmos/cosmos-sdk/codec/types"
-	"github.com/cosmos/cosmos-sdk/types/module"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/x/auth/migrations/legacytx"
 	"github.com/cosmos/cosmos-sdk/x/auth/tx"
+	"github.com/cosmos/gogoproto/proto"
 
+	erc20api "github.com/xpladev/ethermint/api/evmos/erc20/v1"
+	evmapi "github.com/xpladev/ethermint/api/ethermint/evm/v1"
 	enccodec "github.com/xpladev/ethermint/encoding/codec"
+	ethermint "github.com/xpladev/ethermint/types"
+	erc20types "github.com/xpladev/ethermint/x/erc20/types"
+	evmtypes "github.com/xpladev/ethermint/x/evm/types"
 )
 
-// MakeConfig creates an EncodingConfig for testing
-func MakeConfig(mb module.BasicManager) params.EncodingConfig {
+// MakeConfig creates an EncodingConfig
+func MakeConfig() ethermint.EncodingConfig {
 	cdc := amino.NewLegacyAmino()
-	interfaceRegistry := types.NewInterfaceRegistry()
+	signingOptions := signing.Options{
+		AddressCodec: address.Bech32Codec{
+			Bech32Prefix: sdk.GetConfig().GetBech32AccountAddrPrefix(),
+		},
+		ValidatorAddressCodec: address.Bech32Codec{
+			Bech32Prefix: sdk.GetConfig().GetBech32ValidatorAddrPrefix(),
+		},
+	}
+	// apply custom GetSigners for MsgEthereumTx
+	signingOptions.DefineCustomGetSigners(
+		protov2.MessageName(&evmapi.MsgEthereumTx{}),
+		evmtypes.GetSignersV2,
+	)
+	// apply custom GetSigners for MsgConvertERC20
+	signingOptions.DefineCustomGetSigners(
+		protov2.MessageName(&erc20api.MsgConvertERC20{}),
+		erc20types.GetSignersV2,
+	)
+
+	interfaceRegistry, err := types.NewInterfaceRegistryWithOptions(types.InterfaceRegistryOptions{
+		ProtoFiles:     proto.HybridResolver,
+		SigningOptions: signingOptions,
+	})
+	if err != nil {
+		panic(err)
+	}
+	if err := interfaceRegistry.SigningContext().Validate(); err != nil {
+		panic(err)
+	}
 	codec := amino.NewProtoCodec(interfaceRegistry)
 
-	encodingConfig := params.EncodingConfig{
+	encodingConfig := ethermint.EncodingConfig{
 		InterfaceRegistry: interfaceRegistry,
 		Codec:             codec,
 		TxConfig:          tx.NewTxConfig(codec, tx.DefaultSignModes),
 		Amino:             cdc,
 	}
-
 	enccodec.RegisterLegacyAminoCodec(encodingConfig.Amino)
-	mb.RegisterLegacyAminoCodec(encodingConfig.Amino)
 	enccodec.RegisterInterfaces(encodingConfig.InterfaceRegistry)
-	mb.RegisterInterfaces(encodingConfig.InterfaceRegistry)
+	legacytx.RegressionTestingAminoCodec = cdc
+
 	return encodingConfig
 }

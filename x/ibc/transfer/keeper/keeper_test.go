@@ -11,6 +11,10 @@ import (
 	. "github.com/onsi/gomega"
 
 	sdkmath "cosmossdk.io/math"
+
+	abci "github.com/cometbft/cometbft/abci/types"
+	"github.com/cometbft/cometbft/crypto/tmhash"
+
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
@@ -38,12 +42,12 @@ import (
 	"github.com/xpladev/ethermint/contracts"
 	"github.com/xpladev/ethermint/x/erc20/types"
 
-	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
-	transfertypes "github.com/cosmos/ibc-go/v7/modules/apps/transfer/types"
-	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
-	channeltypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
-	porttypes "github.com/cosmos/ibc-go/v7/modules/core/05-port/types"
-	"github.com/cosmos/ibc-go/v7/modules/core/exported"
+	capabilitytypes "github.com/cosmos/ibc-go/modules/capability/types"
+	transfertypes "github.com/cosmos/ibc-go/v8/modules/apps/transfer/types"
+	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
+	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
+	porttypes "github.com/cosmos/ibc-go/v8/modules/core/05-port/types"
+	"github.com/cosmos/ibc-go/v8/modules/core/exported"
 )
 
 type KeeperTestSuite struct {
@@ -75,6 +79,7 @@ func TestKeeperTestSuite(t *testing.T) {
 }
 
 func (suite *KeeperTestSuite) SetupTest() {
+	suite.app = app.Setup(false, feemarkettypes.DefaultGenesisState())
 	suite.DoSetupTest(suite.T())
 }
 
@@ -93,11 +98,14 @@ func (suite *KeeperTestSuite) DoSetupTest(t require.TestingT) {
 	suite.consAddress = consAddress
 
 	// init app
-	suite.app = app.Setup(false, feemarkettypes.DefaultGenesisState())
+	suite.app = app.EthSetup(false, func(app *app.EthermintApp, genesis app.GenesisState) app.GenesisState {
+		return genesis
+	})
 	header := testutil.NewHeader(
-		1, time.Now().UTC(), "ethermint_9000-1", suite.consAddress, nil, nil,
+		1, time.Now().UTC(), "ethermint_9000-1", suite.consAddress,
+		tmhash.Sum([]byte("app")), tmhash.Sum([]byte("validators")),
 	)
-	suite.ctx = suite.app.BaseApp.NewContext(false, header)
+	suite.ctx = suite.app.BaseApp.NewUncachedContext(false, header)
 
 	// query clients
 	queryHelper := baseapp.NewQueryServerTestHelper(suite.ctx, suite.app.InterfaceRegistry())
@@ -109,17 +117,16 @@ func (suite *KeeperTestSuite) DoSetupTest(t require.TestingT) {
 	suite.queryClientEvm = evm.NewQueryClient(queryHelperEvm)
 
 	// bond denom
-	stakingParams := suite.app.StakingKeeper.GetParams(suite.ctx)
+	stakingParams, err := suite.app.StakingKeeper.GetParams(suite.ctx)
+	suite.Require().NoError(err)
 	stakingParams.BondDenom = testutil.BaseDenom
 	suite.app.StakingKeeper.SetParams(suite.ctx, stakingParams)
 
 	// Set Validator
 	valAddr := sdk.ValAddress(suite.address.Bytes())
-	validator, err := stakingtypes.NewValidator(valAddr, privCons.PubKey(), stakingtypes.Description{})
+	validator, err := stakingtypes.NewValidator(valAddr.String(), privCons.PubKey(), stakingtypes.Description{})
 	require.NoError(t, err)
 	validator = stakingkeeper.TestingUpdateValidator(suite.app.StakingKeeper, suite.ctx, validator, true)
-	err = suite.app.StakingKeeper.Hooks().AfterValidatorCreated(suite.ctx, validator.GetOperator())
-	require.NoError(t, err)
 	err = suite.app.StakingKeeper.SetValidatorByConsAddr(suite.ctx, validator)
 	require.NoError(t, err)
 
@@ -134,7 +141,8 @@ func (suite *KeeperTestSuite) DoSetupTest(t require.TestingT) {
 	suite.Require().NoError(err)
 
 	// TODO change to setup with 1 validator
-	validators := s.app.StakingKeeper.GetValidators(s.ctx, 2)
+	validators, err := s.app.StakingKeeper.GetValidators(s.ctx, 2)
+	suite.Require().NoError(err)
 	// set a bonded validator that takes part in consensus
 	if validators[0].Status == stakingtypes.Bonded {
 		suite.validator = validators[0]
@@ -148,7 +156,7 @@ func (suite *KeeperTestSuite) DoSetupTest(t require.TestingT) {
 var timeoutHeight = clienttypes.NewHeight(1000, 1000)
 
 func (suite *KeeperTestSuite) StateDB() *statedb.StateDB {
-	return statedb.New(suite.ctx, suite.app.EvmKeeper, statedb.NewEmptyTxConfig(common.BytesToHash(suite.ctx.HeaderHash().Bytes())))
+	return statedb.New(suite.ctx, suite.app.EvmKeeper, statedb.NewEmptyTxConfig(common.BytesToHash(suite.ctx.HeaderHash())))
 }
 
 func (suite *KeeperTestSuite) MintFeeCollector(coins sdk.Coins) {
@@ -170,9 +178,20 @@ func (suite *KeeperTestSuite) Commit() {
 //  3. EndBlock
 //  4. Commit
 func (suite *KeeperTestSuite) CommitAndBeginBlockAfter(t time.Duration) {
-	var err error
-	suite.ctx, err = testutil.Commit(suite.ctx, suite.app, t, nil)
+	_, err := suite.app.FinalizeBlock(&abci.RequestFinalizeBlock{
+		Height: suite.ctx.BlockHeight(),
+		Time:   suite.ctx.BlockTime(),
+	})
 	suite.Require().NoError(err)
+	suite.app.Commit()
+	header := suite.ctx.BlockHeader()
+	header.Height += 1
+	header.Time = header.Time.Add(t)
+	header.AppHash = suite.app.LastCommitID().Hash
+
+	// update ctx
+	suite.ctx = suite.app.NewUncachedContext(false, header)
+
 	queryHelper := baseapp.NewQueryServerTestHelper(suite.ctx, suite.app.InterfaceRegistry())
 	evm.RegisterQueryServer(queryHelper, suite.app.EvmKeeper)
 	suite.queryClientEvm = evm.NewQueryClient(queryHelper)
@@ -251,7 +270,7 @@ func (suite *KeeperTestSuite) MintERC20Token(contractAddr, from, to common.Addre
 }
 
 func (suite *KeeperTestSuite) sendTx(contractAddr, from common.Address, transferData []byte) *evm.MsgEthereumTx {
-	ctx := sdk.WrapSDKContext(suite.ctx)
+	ctx := suite.ctx
 	chainID := suite.app.EvmKeeper.ChainID()
 
 	args, err := json.Marshal(&evm.TransactionArgs{To: &contractAddr, From: &from, Data: (*hexutil.Bytes)(&transferData)})

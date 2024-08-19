@@ -26,7 +26,7 @@ import (
 	"github.com/xpladev/ethermint/crypto/hd"
 	ethermint "github.com/xpladev/ethermint/types"
 
-	"github.com/cometbft/cometbft/libs/log"
+	"cosmossdk.io/log"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"

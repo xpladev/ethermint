@@ -1,18 +1,31 @@
 package keeper
 
 import (
+	"context"
+
+	//storetypes "cosmossdk.io/store/types"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	//authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 )
 
 // GetAccount implements AccountKeeperI.
-func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) authtypes.AccountI {
-	store := ctx.KVStore(ak.storeKey)
-	iterator := sdk.KVStorePrefixIterator(store, authtypes.AddressStoreKey(addr))
+func (ak AccountKeeper) GetAccount(ctx context.Context, addr sdk.AccAddress) (acc sdk.AccountI) {
+/*	store := ak.storeService.OpenKVStore(ctx)
+	addrbz := append(authtypes.AddressStoreKeyPrefix, addr.Bytes()...)
+	iterator, err := store.Iterator(authtypes.AddressStoreKeyPrefix, storetypes.PrefixEndBytes(addrbz))
+	if err != nil {
+		//TODO return err
+	}
 	defer iterator.Close()
 	if !iterator.Valid() {
 		return nil
 	}
 
-	return ak.decodeAccount(iterator.Value())
+	err = ak.cdc.UnmarshalInterface(iterator.Value(), &acc)
+	if err != nil {
+		panic(err)
+	}
+	return acc*/
+	return ak.AccountKeeper.GetAccount(ctx, addr)
 }

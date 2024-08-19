@@ -20,14 +20,20 @@ import (
 	"math/big"
 	"strconv"
 
+	"github.com/pkg/errors"
+
 	tmrpcclient "github.com/cometbft/cometbft/rpc/client"
 	tmrpctypes "github.com/cometbft/cometbft/rpc/core/types"
+
+	sdkmath "cosmossdk.io/math"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
+
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/ethereum/go-ethereum/rpc"
-	"github.com/pkg/errors"
+
 	rpctypes "github.com/xpladev/ethermint/rpc/types"
 	ethermint "github.com/xpladev/ethermint/types"
 	evmtypes "github.com/xpladev/ethermint/x/evm/types"
@@ -65,10 +71,10 @@ func (b *Backend) ChainConfig() *params.ChainConfig {
 }
 
 // GlobalMinGasPrice returns MinGasPrice param from FeeMarket
-func (b *Backend) GlobalMinGasPrice() (sdk.Dec, error) {
+func (b *Backend) GlobalMinGasPrice() (sdkmath.LegacyDec, error) {
 	res, err := b.queryClient.FeeMarket.Params(b.ctx, &feemarkettypes.QueryParamsRequest{})
 	if err != nil {
-		return sdk.ZeroDec(), err
+		return sdkmath.LegacyZeroDec(), err
 	}
 	return res.Params.MinGasPrice, nil
 }
@@ -84,8 +90,8 @@ func (b *Backend) BaseFee(blockRes *tmrpctypes.ResultBlockResults) (*big.Int, er
 		// we can't tell if it's london HF not enabled or the state is pruned,
 		// in either case, we'll fallback to parsing from begin blocker event,
 		// faster to iterate reversely
-		for i := len(blockRes.BeginBlockEvents) - 1; i >= 0; i-- {
-			evt := blockRes.BeginBlockEvents[i]
+		for i := len(blockRes.FinalizeBlockEvents) - 1; i >= 0; i-- {
+			evt := blockRes.FinalizeBlockEvents[i]
 			if evt.Type == feemarkettypes.EventTypeFeeMarket && len(evt.Attributes) > 0 {
 				baseFee, err := strconv.ParseInt(evt.Attributes[0].Value, 10, 64)
 				if err == nil {
