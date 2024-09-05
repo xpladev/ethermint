@@ -17,7 +17,6 @@ package tx
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -97,12 +96,9 @@ func PrepareEIP712CosmosTx(
 	}
 	chainIDNum := pc.Uint64()
 
-	fmt.Println("args ", txArgs.Priv)
 	from := sdk.AccAddress(txArgs.Priv.PubKey().Address().Bytes())
-	fmt.Println("from ", from)
 	acc := appEthermint.AccountKeeper.GetAccount(ctx, from)
 
-	fmt.Println("acc: ", acc)
 	accNumber := acc.GetAccountNumber()
 
 	nonce, err := appEthermint.AccountKeeper.GetSequence(ctx, from)
@@ -113,7 +109,7 @@ func PrepareEIP712CosmosTx(
 	fee := legacytx.NewStdFee(txArgs.Gas, txArgs.Fees) //nolint: staticcheck
 
 	msgs := txArgs.Msgs
-	data := legacytx.StdSignBytes(ctx.ChainID(), accNumber, nonce, 0, fee, msgs, "", nil)
+	data := legacytx.StdSignBytes(ctx.ChainID(), accNumber, nonce, 0, fee, msgs, "")
 
 	typedDataArgs := typedDataArgs{
 		chainID:        chainIDNum,
@@ -199,7 +195,7 @@ func signCosmosEIP712Tx(
 	}
 
 	keyringSigner := NewSigner(priv)
-	signature, pubKey, err := keyringSigner.SignByAddress(from, sigHash)
+	signature, pubKey, err := keyringSigner.SignByAddress(from, sigHash, signing.SignMode_SIGN_MODE_TEXTUAL)
 	if err != nil {
 		return nil, err
 	}

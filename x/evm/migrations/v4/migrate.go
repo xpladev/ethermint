@@ -1,8 +1,8 @@
 package v4
 
 import (
+	storetypes "cosmossdk.io/store/types"
 	"github.com/cosmos/cosmos-sdk/codec"
-	storetypes "github.com/cosmos/cosmos-sdk/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	v4types "github.com/xpladev/ethermint/x/evm/migrations/v4/types"
@@ -30,7 +30,6 @@ func MigrateStore(
 	extraEIPsBz := cdc.MustMarshal(&v4types.ExtraEIPs{EIPs: params.ExtraEIPs})
 
 	store := ctx.KVStore(storeKey)
-
 	store.Set(types.ParamStoreKeyEVMDenom, []byte(params.EvmDenom))
 	store.Set(types.ParamStoreKeyExtraEIPs, extraEIPsBz)
 	store.Set(types.ParamStoreKeyChainConfig, chainCfgBz)

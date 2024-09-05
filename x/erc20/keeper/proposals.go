@@ -48,7 +48,7 @@ func (k Keeper) RegisterCoin(
 
 	if err := k.verifyMetadata(ctx, coinMetadata); err != nil {
 		return nil, errorsmod.Wrapf(
-			types.ErrInternalTokenPair, "coin metadata is invalid %s", coinMetadata.Name,
+			err, "coin metadata is invalid %s", coinMetadata.Name,
 		)
 	}
 

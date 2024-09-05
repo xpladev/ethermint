@@ -138,6 +138,14 @@ func RegisterBlockNotFound(
 	return &tmrpctypes.ResultBlock{Block: nil}, nil
 }
 
+// Block panic
+func RegisterBlockPanic(client *mocks.Client, height int64) {
+	client.On("Block", rpc.ContextWithHeight(height), mock.AnythingOfType("*int64")).
+		Return(func(context.Context, *int64) *tmrpctypes.ResultBlock {
+			panic("Block call panic")
+		}, nil)
+}
+
 func TestRegisterBlock(t *testing.T) {
 	client := mocks.NewClient(t)
 	height := rpc.BlockNumber(1).Int64()
@@ -180,7 +188,7 @@ func TestRegisterConsensusParams(t *testing.T) {
 func RegisterBlockResultsWithEventLog(client *mocks.Client, height int64) (*tmrpctypes.ResultBlockResults, error) {
 	res := &tmrpctypes.ResultBlockResults{
 		Height: height,
-		TxsResults: []*abci.ResponseDeliverTx{
+		TxsResults: []*abci.ExecTxResult{
 			{Code: 0, GasUsed: 0, Events: []abci.Event{{
 				Type: evmtypes.EventTypeTxLog,
 				Attributes: []abci.EventAttribute{{
@@ -202,7 +210,7 @@ func RegisterBlockResults(
 ) (*tmrpctypes.ResultBlockResults, error) {
 	res := &tmrpctypes.ResultBlockResults{
 		Height:     height,
-		TxsResults: []*abci.ResponseDeliverTx{{Code: 0, GasUsed: 0}},
+		TxsResults: []*abci.ExecTxResult{{Code: 0, GasUsed: 0}},
 	}
 
 	client.On("BlockResults", rpc.ContextWithHeight(height), mock.AnythingOfType("*int64")).
@@ -223,7 +231,7 @@ func TestRegisterBlockResults(t *testing.T) {
 	res, err := client.BlockResults(rpc.ContextWithHeight(height), &height)
 	expRes := &tmrpctypes.ResultBlockResults{
 		Height:     height,
-		TxsResults: []*abci.ResponseDeliverTx{{Code: 0, GasUsed: 0}},
+		TxsResults: []*abci.ExecTxResult{{Code: 0, GasUsed: 0}},
 	}
 	require.Equal(t, expRes, res)
 	require.NoError(t, err)

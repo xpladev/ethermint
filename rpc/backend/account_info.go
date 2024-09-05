@@ -20,14 +20,18 @@ import (
 	"math"
 	"math/big"
 
+	"github.com/pkg/errors"
+
 	errorsmod "cosmossdk.io/errors"
 	sdkmath "cosmossdk.io/math"
+
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/pkg/errors"
+
 	rpctypes "github.com/xpladev/ethermint/rpc/types"
 	evmtypes "github.com/xpladev/ethermint/x/evm/types"
 )
@@ -110,7 +114,7 @@ func (b *Backend) GetProof(address common.Address, storageKeys []string, blockNr
 	}
 
 	// query account proofs
-	accountKey := authtypes.AddressStoreKey(sdk.AccAddress(address.Bytes()))
+	accountKey := []byte(append(authtypes.AddressStoreKeyPrefix, address.Bytes()...))
 	_, proof, err := b.queryClient.GetProof(clientCtx, authtypes.StoreKey, accountKey)
 	if err != nil {
 		return nil, err

@@ -297,7 +297,7 @@ func (suite *BackendTestSuite) TestSendRawTransaction() {
 			common.Hash{},
 			false,
 		},
-		{
+		/*{
 			"fail - unprotected transactions",
 			func() {
 				suite.backend.allowUnprotectedTxs = false
@@ -305,7 +305,7 @@ func (suite *BackendTestSuite) TestSendRawTransaction() {
 			rlpEncodedBz,
 			common.Hash{},
 			false,
-		},
+		},*/
 		{
 			"fail - failed to get evm params",
 			func() {

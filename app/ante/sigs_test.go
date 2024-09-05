@@ -8,7 +8,7 @@ import (
 	evmtypes "github.com/xpladev/ethermint/x/evm/types"
 )
 
-func (suite AnteTestSuite) TestSignatures() {
+func (suite *AnteTestSuite) TestSignatures() {
 	suite.enableFeemarket = false
 	suite.SetupTest() // reset
 

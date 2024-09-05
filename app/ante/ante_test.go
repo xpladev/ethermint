@@ -9,6 +9,7 @@ import (
 	"time"
 
 	sdkmath "cosmossdk.io/math"
+	storetypes "cosmossdk.io/store/types"
 	kmultisig "github.com/cosmos/cosmos-sdk/crypto/keys/multisig"
 	"github.com/stretchr/testify/suite"
 
@@ -27,6 +28,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/core/types"
 	ethparams "github.com/ethereum/go-ethereum/params"
+	"github.com/xpladev/ethermint/app"
 	"github.com/xpladev/ethermint/app/ante"
 	"github.com/xpladev/ethermint/crypto/ethsecp256k1"
 	"github.com/xpladev/ethermint/tests"
@@ -56,8 +58,8 @@ func TestAnteTestSuite(t *testing.T) {
 	})
 }
 
-func (suite AnteTestSuite) TestAnteHandler() {
-	var acc authtypes.AccountI
+func (suite *AnteTestSuite) TestAnteHandler() {
+	var acc sdk.AccountI
 	addr, privKey := tests.NewAddrKey()
 	to := tests.GenerateAddress()
 
@@ -394,7 +396,8 @@ func (suite AnteTestSuite) TestAnteHandler() {
 					from, grantee, &banktypes.SendAuthorization{SpendLimit: gasAmount}, &expiresAt,
 				)
 				suite.Require().NoError(err)
-				return suite.CreateTestEIP712SingleMessageTxBuilder(privKey, "ethermint_9000-1", gas, gasAmount, msg).GetTx()
+				txBuilder := suite.CreateTestEIP712SingleMessageTxBuilder(privKey, "ethermint_9000-1", gas, gasAmount, msg)
+				return txBuilder.GetTx()
 			}, false, false, true,
 		},
 
@@ -906,7 +909,7 @@ func (suite AnteTestSuite) TestAnteHandler() {
 		suite.Run(tc.name, func() {
 			setup()
 
-			suite.ctx = suite.ctx.WithIsCheckTx(tc.checkTx).WithIsReCheckTx(tc.reCheckTx)
+			suite.ctx = suite.ctx.WithIsCheckTx(tc.checkTx).WithIsReCheckTx(tc.reCheckTx).WithConsensusParams(*app.DefaultConsensusParams)
 
 			// expConsumed := params.TxGasContractCreation + params.TxGas
 			_, err := suite.anteHandler(suite.ctx, tc.txFn(), false)
@@ -923,7 +926,7 @@ func (suite AnteTestSuite) TestAnteHandler() {
 	}
 }
 
-func (suite AnteTestSuite) TestAnteHandlerWithDynamicTxFee() {
+func (suite *AnteTestSuite) TestAnteHandlerWithDynamicTxFee() {
 	addr, privKey := tests.NewAddrKey()
 	to := tests.GenerateAddress()
 
@@ -1091,7 +1094,7 @@ func (suite AnteTestSuite) TestAnteHandlerWithDynamicTxFee() {
 			suite.Require().NoError(acc.SetSequence(1))
 			suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 
-			suite.ctx = suite.ctx.WithIsCheckTx(tc.checkTx).WithIsReCheckTx(tc.reCheckTx)
+			suite.ctx = suite.ctx.WithIsCheckTx(tc.checkTx).WithIsReCheckTx(tc.reCheckTx).WithConsensusParams(*app.DefaultConsensusParams)
 			suite.app.EvmKeeper.SetBalance(suite.ctx, addr, big.NewInt((ethparams.InitialBaseFee+10)*100000))
 			_, err := suite.anteHandler(suite.ctx, tc.txFn(), false)
 			if tc.expPass {
@@ -1105,7 +1108,7 @@ func (suite AnteTestSuite) TestAnteHandlerWithDynamicTxFee() {
 	suite.enableLondonHF = true
 }
 
-func (suite AnteTestSuite) TestAnteHandlerWithParams() {
+func (suite *AnteTestSuite) TestAnteHandlerWithParams() {
 	addr, privKey := tests.NewAddrKey()
 	to := tests.GenerateAddress()
 
@@ -1199,7 +1202,7 @@ func (suite AnteTestSuite) TestAnteHandlerWithParams() {
 			suite.Require().NoError(acc.SetSequence(1))
 			suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 
-			suite.ctx = suite.ctx.WithIsCheckTx(true)
+			suite.ctx = suite.ctx.WithIsCheckTx(true).WithConsensusParams(*app.DefaultConsensusParams)
 			suite.app.EvmKeeper.SetBalance(suite.ctx, addr, big.NewInt((ethparams.InitialBaseFee+10)*100000))
 			_, err := suite.anteHandler(suite.ctx, tc.txFn(), false)
 			if tc.expErr == nil {
@@ -1236,7 +1239,7 @@ func (suite *AnteTestSuite) TestConsumeSignatureVerificationGas() {
 	}
 
 	type args struct {
-		meter  sdk.GasMeter
+		meter  storetypes.GasMeter
 		sig    signing.SignatureData
 		pubkey cryptotypes.PubKey
 		params authtypes.Params
@@ -1247,11 +1250,11 @@ func (suite *AnteTestSuite) TestConsumeSignatureVerificationGas() {
 		gasConsumed uint64
 		shouldErr   bool
 	}{
-		{"PubKeyEd25519", args{sdk.NewInfiniteGasMeter(), nil, ed25519.GenPrivKey().PubKey(), params}, p.SigVerifyCostED25519, true},
-		{"PubKeyEthSecp256k1", args{sdk.NewInfiniteGasMeter(), nil, pkSet1[0], params}, 21_000, false},
-		{"PubKeySecp256r1", args{sdk.NewInfiniteGasMeter(), nil, skR1.PubKey(), params}, p.SigVerifyCostSecp256r1(), false},
-		{"Multisig", args{sdk.NewInfiniteGasMeter(), multisignature1, multisigKey1, params}, expectedCost1, false},
-		{"unknown key", args{sdk.NewInfiniteGasMeter(), nil, nil, params}, 0, true},
+		{"PubKeyEd25519", args{storetypes.NewInfiniteGasMeter(), nil, ed25519.GenPrivKey().PubKey(), params}, p.SigVerifyCostED25519, true},
+		{"PubKeyEthSecp256k1", args{storetypes.NewInfiniteGasMeter(), nil, pkSet1[0], params}, 21_000, false},
+		{"PubKeySecp256r1", args{storetypes.NewInfiniteGasMeter(), nil, skR1.PubKey(), params}, p.SigVerifyCostSecp256r1(), false},
+		{"Multisig", args{storetypes.NewInfiniteGasMeter(), multisignature1, multisigKey1, params}, expectedCost1, false},
+		{"unknown key", args{storetypes.NewInfiniteGasMeter(), nil, nil, params}, 0, true},
 	}
 	for _, tt := range tests {
 		sigV2 := signing.SignatureV2{

@@ -6,7 +6,6 @@ package types
 import (
 	cosmossdk_io_math "cosmossdk.io/math"
 	fmt "fmt"
-	github_com_cosmos_cosmos_sdk_types "github.com/cosmos/cosmos-sdk/types"
 	_ "github.com/cosmos/gogoproto/gogoproto"
 	proto "github.com/cosmos/gogoproto/proto"
 	io "io"
@@ -40,10 +39,10 @@ type Params struct {
 	// base_fee for EIP-1559 blocks.
 	BaseFee cosmossdk_io_math.Int `protobuf:"bytes,6,opt,name=base_fee,json=baseFee,proto3,customtype=cosmossdk.io/math.Int" json:"base_fee"`
 	// min_gas_price defines the minimum gas price value for cosmos and eth transactions
-	MinGasPrice github_com_cosmos_cosmos_sdk_types.Dec `protobuf:"bytes,7,opt,name=min_gas_price,json=minGasPrice,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Dec" json:"min_gas_price"`
+	MinGasPrice cosmossdk_io_math.LegacyDec `protobuf:"bytes,7,opt,name=min_gas_price,json=minGasPrice,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Dec" json:"min_gas_price"`
 	// min_gas_multiplier bounds the minimum gas used to be charged
 	// to senders based on gas limit
-	MinGasMultiplier github_com_cosmos_cosmos_sdk_types.Dec `protobuf:"bytes,8,opt,name=min_gas_multiplier,json=minGasMultiplier,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Dec" json:"min_gas_multiplier"`
+	MinGasMultiplier cosmossdk_io_math.LegacyDec `protobuf:"bytes,8,opt,name=min_gas_multiplier,json=minGasMultiplier,proto3,customtype=github.com/cosmos/cosmos-sdk/types.Dec" json:"min_gas_multiplier"`
 }
 
 func (m *Params) Reset()         { *m = Params{} }

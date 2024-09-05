@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"math/big"
 
+	tmlog "cosmossdk.io/log"
 	sdkmath "cosmossdk.io/math"
 
-	dbm "github.com/cometbft/cometbft-db"
 	abci "github.com/cometbft/cometbft/abci/types"
-	tmlog "github.com/cometbft/cometbft/libs/log"
 	tmrpctypes "github.com/cometbft/cometbft/rpc/core/types"
 	"github.com/cometbft/cometbft/types"
+	dbm "github.com/cosmos/cosmos-db"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/xpladev/ethermint/indexer"
@@ -27,7 +27,7 @@ func (suite *BackendTestSuite) TestGetTransactionByHash() {
 
 	txBz := suite.signAndEncodeEthTx(msgEthereumTx)
 	block := &types.Block{Header: types.Header{Height: 1, ChainID: "test"}, Data: types.Data{Txs: []types.Tx{txBz}}}
-	responseDeliver := []*abci.ResponseDeliverTx{
+	responseDeliver := []*abci.ExecTxResult{
 		{
 			Code: 0,
 			Events: []abci.Event{
@@ -279,7 +279,7 @@ func (suite *BackendTestSuite) TestGetTransactionByBlockAndIndex() {
 	msgEthTx, bz := suite.buildEthereumTx()
 
 	defaultBlock := types.MakeBlock(1, []types.Tx{bz}, nil, nil)
-	defaultResponseDeliverTx := []*abci.ResponseDeliverTx{
+	defaultResponseDeliverTx := []*abci.ExecTxResult{
 		{
 			Code: 0,
 			Events: []abci.Event{
@@ -542,7 +542,7 @@ func (suite *BackendTestSuite) TestGetTransactionReceipt() {
 		registerMock func()
 		tx           *evmtypes.MsgEthereumTx
 		block        *types.Block
-		blockResult  []*abci.ResponseDeliverTx
+		blockResult  []*abci.ExecTxResult
 		expTxReceipt map[string]interface{}
 		expPass      bool
 	}{
@@ -559,7 +559,7 @@ func (suite *BackendTestSuite) TestGetTransactionReceipt() {
 			},
 			msgEthereumTx,
 			&types.Block{Header: types.Header{Height: 1}, Data: types.Data{Txs: []types.Tx{txBz}}},
-			[]*abci.ResponseDeliverTx{
+			[]*abci.ExecTxResult{
 				{
 					Code: 0,
 					Events: []abci.Event{

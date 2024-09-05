@@ -10,7 +10,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 	proto "github.com/cosmos/gogoproto/proto"
-	"github.com/xpladev/ethermint/app"
 	"github.com/xpladev/ethermint/encoding"
 	evmtypes "github.com/xpladev/ethermint/x/evm/types"
 
@@ -52,7 +51,7 @@ func TestUnwrapEthererumMsg(t *testing.T) {
 	_, err := evmtypes.UnwrapEthereumMsg(nil, common.Hash{})
 	require.NotNil(t, err)
 
-	encodingConfig := encoding.MakeConfig(app.ModuleBasics)
+	encodingConfig := encoding.MakeConfig()
 	clientCtx := client.Context{}.WithTxConfig(encodingConfig.TxConfig)
 	builder, _ := clientCtx.TxConfig.NewTxBuilder().(authtx.ExtensionOptionsTxBuilder)
 

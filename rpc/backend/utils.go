@@ -22,21 +22,23 @@ import (
 	"sort"
 	"strings"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"cosmossdk.io/log"
+
+	abci "github.com/cometbft/cometbft/abci/types"
+	"github.com/cometbft/cometbft/proto/tendermint/crypto"
+	tmrpctypes "github.com/cometbft/cometbft/rpc/core/types"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/consensus/misc"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
-	abci "github.com/cometbft/cometbft/abci/types"
-	"github.com/cometbft/cometbft/libs/log"
-	tmrpctypes "github.com/cometbft/cometbft/rpc/core/types"
-
-	"github.com/cometbft/cometbft/proto/tendermint/crypto"
 	"github.com/xpladev/ethermint/rpc/types"
 	evmtypes "github.com/xpladev/ethermint/x/evm/types"
 )
@@ -74,7 +76,7 @@ func (b *Backend) getAccountNonce(accAddr common.Address, pending bool, height i
 		}
 		return 0, err
 	}
-	var acc authtypes.AccountI
+	var acc sdk.AccountI
 	if err := b.clientCtx.InterfaceRegistry.UnpackAny(res.Account, &acc); err != nil {
 		return 0, err
 	}
@@ -178,7 +180,7 @@ func (b *Backend) processBlock(
 
 		tx, err := b.clientCtx.TxConfig.TxDecoder()(eachTendermintTx)
 		if err != nil {
-			b.logger.Debug("failed to decode transaction in block", "height", blockHeight, "error", err.Error())
+			b.logger.Debug("rpc/backend/utils.go: failed to decode transaction in block", "height", blockHeight, "error", err.Error())
 			continue
 		}
 		txGasUsed := uint64(eachTendermintTxResult.GasUsed)
@@ -275,7 +277,7 @@ func ParseTxLogsFromEvent(event abci.Event) ([]*ethtypes.Log, error) {
 
 // ShouldIgnoreGasUsed returns true if the gasUsed in result should be ignored
 // workaround for issue: https://github.com/cosmos/cosmos-sdk/issues/10832
-func ShouldIgnoreGasUsed(res *abci.ResponseDeliverTx) bool {
+func ShouldIgnoreGasUsed(res *abci.ExecTxResult) bool {
 	return res.GetCode() == 11 && strings.Contains(res.GetLog(), "no block gas left to run tx: out of gas")
 }
 

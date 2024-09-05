@@ -35,9 +35,10 @@ func TestGenesisTestSuite(t *testing.T) {
 func (suite *GenesisTestSuite) SetupTest() {
 	// consensus key
 	consAddress := sdk.ConsAddress(utiltx.GenerateAddress().Bytes())
+
 	feemarketGenesis := feemarkettypes.DefaultGenesisState()
 	suite.app = app.Setup(false, feemarketGenesis)
-	suite.ctx = suite.app.BaseApp.NewContext(false, tmproto.Header{
+	suite.ctx = suite.app.BaseApp.NewUncachedContext(false, tmproto.Header{
 		Height:          1,
 		ChainID:         "ethermint_9000-1",
 		Time:            time.Now().UTC(),

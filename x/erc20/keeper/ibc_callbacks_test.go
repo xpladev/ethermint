@@ -19,11 +19,11 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	"github.com/xpladev/ethermint/testutil"
 
-	transfertypes "github.com/cosmos/ibc-go/v7/modules/apps/transfer/types"
-	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
-	channeltypes "github.com/cosmos/ibc-go/v7/modules/core/04-channel/types"
-	ibcgotesting "github.com/cosmos/ibc-go/v7/testing"
-	ibcmock "github.com/cosmos/ibc-go/v7/testing/mock"
+	transfertypes "github.com/cosmos/ibc-go/v8/modules/apps/transfer/types"
+	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
+	channeltypes "github.com/cosmos/ibc-go/v8/modules/core/04-channel/types"
+	ibcgotesting "github.com/cosmos/ibc-go/v8/testing"
+	ibcmock "github.com/cosmos/ibc-go/v8/testing/mock"
 
 	"github.com/xpladev/ethermint/contracts"
 	"github.com/xpladev/ethermint/x/erc20/types"
@@ -170,7 +170,8 @@ func (suite *KeeperTestSuite) TestOnRecvPacket() {
 			malleate: func() {
 				// base denom should be prefixed
 				sourcePrefix := transfertypes.GetDenomPrefix(transfertypes.PortID, sourceChannel)
-				prefixedDenom := sourcePrefix + s.app.StakingKeeper.BondDenom(suite.ctx)
+				tmpDenom, _ := s.app.StakingKeeper.BondDenom(suite.ctx)
+				prefixedDenom := sourcePrefix + tmpDenom
 				transfer := transfertypes.NewFungibleTokenPacketData(prefixedDenom, "100", secpAddrCosmos, ethsecpAddrEthermint, "")
 				bz := transfertypes.ModuleCdc.MustMarshalJSON(&transfer)
 				packet = channeltypes.NewPacket(bz, 1, transfertypes.PortID, sourceChannel, transfertypes.PortID, ethermintChannel, timeoutHeight, 0)
@@ -344,7 +345,7 @@ func (suite *KeeperTestSuite) TestOnRecvPacket() {
 }
 
 func (suite *KeeperTestSuite) TestConvertCoinToERC20FromPacket() {
-	senderAddr := "ethm1x2w87cvt5mqjncav4lxy8yfreynn273x2mwadx"
+	senderAddr := "cosmos1x2w87cvt5mqjncav4lxy8yfreynn273x34qlwy"
 
 	testCases := []struct {
 		name     string
@@ -563,7 +564,7 @@ func (suite *KeeperTestSuite) TestOnAcknowledgementPacket() {
 }
 
 func (suite *KeeperTestSuite) TestOnTimeoutPacket() {
-	senderAddr := "ethm1x2w87cvt5mqjncav4lxy8yfreynn273x2mwadx"
+	senderAddr := "cosmos1x2w87cvt5mqjncav4lxy8yfreynn273x34qlwy"
 
 	testCases := []struct {
 		name     string
