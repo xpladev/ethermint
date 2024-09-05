@@ -10,7 +10,7 @@ import (
 	evmtypes "github.com/xpladev/ethermint/x/evm/types"
 )
 
-func (suite AnteTestSuite) TestEthSigVerificationDecorator() {
+func (suite *AnteTestSuite) TestEthSigVerificationDecorator() {
 	addr, privKey := tests.NewAddrKey()
 
 	ethContractCreationTxParams := &evmtypes.EvmTxArgs{

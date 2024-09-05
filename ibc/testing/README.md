@@ -262,8 +262,8 @@ import (
 	"github.com/tendermint/tendermint/libs/log"
 	dbm "github.com/cometbft/cometbft-db"
 
-	"github.com/cosmos/ibc-go/v7/modules/apps/transfer/simapp"
-	ibctesting "github.com/cosmos/ibc-go/v7/testing"
+	"github.com/cosmos/ibc-go/v8/modules/apps/transfer/simapp"
+	ibctesting "github.com/cosmos/ibc-go/v8/testing"
 )
 
 func SetupTransferTestingApp() (ibctesting.TestingApp, map[string]json.RawMessage) {

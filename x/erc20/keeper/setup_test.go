@@ -12,7 +12,7 @@ import (
 	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	ibcgotesting "github.com/cosmos/ibc-go/v7/testing"
+	ibcgotesting "github.com/cosmos/ibc-go/v8/testing"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/stretchr/testify/suite"
@@ -20,6 +20,7 @@ import (
 	ibctesting "github.com/xpladev/ethermint/ibc/testing"
 	"github.com/xpladev/ethermint/x/erc20/types"
 	evm "github.com/xpladev/ethermint/x/evm/types"
+	feemarkettypes "github.com/xpladev/ethermint/x/feemarket/types"
 )
 
 type KeeperTestSuite struct {
@@ -73,5 +74,6 @@ func TestKeeperTestSuite(t *testing.T) {
 }
 
 func (suite *KeeperTestSuite) SetupTest() {
+	suite.app = app.Setup(false, feemarkettypes.DefaultGenesisState())
 	suite.DoSetupTest(suite.T())
 }

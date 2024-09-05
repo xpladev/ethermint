@@ -18,29 +18,31 @@ package app
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
+	"cosmossdk.io/log"
 	sdkmath "cosmossdk.io/math"
-	"cosmossdk.io/simapp"
-	dbm "github.com/cometbft/cometbft-db"
+
 	abci "github.com/cometbft/cometbft/abci/types"
-	"github.com/cometbft/cometbft/libs/log"
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	tmtypes "github.com/cometbft/cometbft/types"
+
+	dbm "github.com/cosmos/cosmos-db"
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	ibctesting "github.com/cosmos/ibc-go/v7/testing"
-	"github.com/cosmos/ibc-go/v7/testing/mock"
+	ibctesting "github.com/cosmos/ibc-go/v8/testing"
+	"github.com/cosmos/ibc-go/v8/testing/mock"
 
+	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
-	"github.com/xpladev/ethermint/encoding"
 	evmtypes "github.com/xpladev/ethermint/x/evm/types"
 	feemarkettypes "github.com/xpladev/ethermint/x/feemarket/types"
 
@@ -54,7 +56,7 @@ func init() {
 }
 
 // DefaultTestingAppInit defines the IBC application used for testing
-var DefaultTestingAppInit func() (ibctesting.TestingApp, map[string]json.RawMessage) = SetupTestingApp
+var DefaultTestingAppInit func() (ibctesting.TestingApp, GenesisState) = SetupTestingApp
 
 // DefaultConsensusParams defines the default Tendermint consensus params used in
 // EthermintApp testing.
@@ -76,7 +78,7 @@ var DefaultConsensusParams = &tmproto.ConsensusParams{
 }
 
 func init() {
-	feemarkettypes.DefaultMinGasPrice = sdk.ZeroDec()
+	feemarkettypes.DefaultMinGasPrice = sdkmath.LegacyZeroDec()
 	cfg := sdk.GetConfig()
 	config.SetBech32Prefixes(cfg)
 	config.SetBip44CoinType(cfg)
@@ -104,12 +106,15 @@ func Setup(
 
 	db := dbm.NewMemDB()
 
-	app := NewEthermintApp(log.NewNopLogger(), db, nil, true, map[int64]bool{}, DefaultNodeHome, 5, encoding.MakeConfig(ModuleBasics), simtestutil.NewAppOptionsWithFlagHome(DefaultNodeHome), baseapp.SetChainID(ChainID))
+	app := NewEthermintApp(log.NewNopLogger(), db, nil, true, simtestutil.NewAppOptionsWithFlagHome(DefaultNodeHome), baseapp.SetChainID(ChainID))
 	if !isCheckTx {
 		// init chain must be called to stop deliverState from being nil
-		genesisState := NewDefaultGenesisState()
+		genesisState := app.DefaultGenesis()
 
-		genesisState = GenesisStateWithValSet(app, genesisState, valSet, []authtypes.GenesisAccount{acc}, balance)
+		genesisState, err := GenesisStateWithValSet(app.AppCodec(), genesisState, valSet, []authtypes.GenesisAccount{acc}, balance)
+		if err != nil {
+			panic(fmt.Errorf("failed to create genesis state: %w", err))
+		}
 
 		// Verify feeMarket genesis
 		if feemarketGenesis != nil {
@@ -126,7 +131,7 @@ func Setup(
 
 		// Initialize the chain
 		app.InitChain(
-			abci.RequestInitChain{
+			&abci.RequestInitChain{
 				ChainId:         "ethermint_9000-1",
 				Validators:      []abci.ValidatorUpdate{},
 				ConsensusParams: DefaultConsensusParams,
@@ -138,13 +143,13 @@ func Setup(
 	return app
 }
 
-func GenesisStateWithValSet(app *EthermintApp, genesisState simapp.GenesisState,
+func GenesisStateWithValSet(codec codec.Codec, genesisState GenesisState,
 	valSet *tmtypes.ValidatorSet, genAccs []authtypes.GenesisAccount,
 	balances ...banktypes.Balance,
-) simapp.GenesisState {
+) (GenesisState, error) {
 	// set genesis accounts
 	authGenesis := authtypes.NewGenesisState(authtypes.DefaultParams(), genAccs)
-	genesisState[authtypes.ModuleName] = app.AppCodec().MustMarshalJSON(authGenesis)
+	genesisState[authtypes.ModuleName] = codec.MustMarshalJSON(authGenesis)
 
 	validators := make([]stakingtypes.Validator, 0, len(valSet.Validators))
 	delegations := make([]stakingtypes.Delegation, 0, len(valSet.Validators))
@@ -152,30 +157,37 @@ func GenesisStateWithValSet(app *EthermintApp, genesisState simapp.GenesisState,
 	bondAmt := sdk.DefaultPowerReduction
 
 	for _, val := range valSet.Validators {
-		pk, _ := cryptocodec.FromTmPubKeyInterface(val.PubKey)
-		pkAny, _ := codectypes.NewAnyWithValue(pk)
+		pk, err := cryptocodec.FromTmPubKeyInterface(val.PubKey)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert pubkey: %w", err)
+		}
+
+		pkAny, err := codectypes.NewAnyWithValue(pk)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create new any: %w", err)
+		}
+
 		validator := stakingtypes.Validator{
 			OperatorAddress:   sdk.ValAddress(val.Address).String(),
 			ConsensusPubkey:   pkAny,
 			Jailed:            false,
 			Status:            stakingtypes.Bonded,
 			Tokens:            bondAmt,
-			DelegatorShares:   sdk.OneDec(),
+			DelegatorShares:   sdkmath.LegacyOneDec(),
 			Description:       stakingtypes.Description{},
 			UnbondingHeight:   int64(0),
 			UnbondingTime:     time.Unix(0, 0).UTC(),
-			Commission:        stakingtypes.NewCommission(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec()),
-			MinSelfDelegation: sdk.ZeroInt(),
+			Commission:        stakingtypes.NewCommission(sdkmath.LegacyZeroDec(), sdkmath.LegacyZeroDec(), sdkmath.LegacyZeroDec()),
+			MinSelfDelegation: sdkmath.ZeroInt(),
 		}
 		validators = append(validators, validator)
-		delegations = append(delegations, stakingtypes.NewDelegation(genAccs[0].GetAddress(), val.Address.Bytes(), sdk.OneDec()))
-
+		delegations = append(delegations, stakingtypes.NewDelegation(genAccs[0].GetAddress().String(), sdk.ValAddress(val.Address).String(), sdkmath.LegacyOneDec()))
 	}
 	// set validators and delegations
 	stakingParams := stakingtypes.DefaultParams()
 	stakingParams.BondDenom = evmtypes.DefaultEVMDenom
 	stakingGenesis := stakingtypes.NewGenesisState(stakingParams, validators, delegations)
-	genesisState[stakingtypes.ModuleName] = app.AppCodec().MustMarshalJSON(stakingGenesis)
+	genesisState[stakingtypes.ModuleName] = codec.MustMarshalJSON(stakingGenesis)
 
 	totalSupply := sdk.NewCoins()
 	for _, b := range balances {
@@ -196,15 +208,17 @@ func GenesisStateWithValSet(app *EthermintApp, genesisState simapp.GenesisState,
 
 	// update total supply
 	bankGenesis := banktypes.NewGenesisState(banktypes.DefaultGenesisState().Params, balances, totalSupply, []banktypes.Metadata{}, []banktypes.SendEnabled{})
-	genesisState[banktypes.ModuleName] = app.AppCodec().MustMarshalJSON(bankGenesis)
+	genesisState[banktypes.ModuleName] = codec.MustMarshalJSON(bankGenesis)
 
-	return genesisState
+	return genesisState, nil
 }
 
 // SetupTestingApp initializes the IBC-go testing application
-func SetupTestingApp() (ibctesting.TestingApp, map[string]json.RawMessage) {
+func SetupTestingApp() (ibctesting.TestingApp, GenesisState) {
 	db := dbm.NewMemDB()
-	cfg := encoding.MakeConfig(ModuleBasics)
-	app := NewEthermintApp(log.NewNopLogger(), db, nil, true, map[int64]bool{}, DefaultNodeHome, 5, cfg, simtestutil.NewAppOptionsWithFlagHome(DefaultNodeHome), baseapp.SetChainID(ChainID))
-	return app, NewDefaultGenesisState()
+	app := NewEthermintApp(
+		log.NewNopLogger(), db, nil, true,
+		simtestutil.NewAppOptionsWithFlagHome(DefaultNodeHome), baseapp.SetChainID(ChainID),
+	)
+	return app, app.DefaultGenesis()
 }

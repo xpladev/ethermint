@@ -3,13 +3,13 @@ package ante_test
 import (
 	"math/big"
 
-	storetypes "github.com/cosmos/cosmos-sdk/store/types"
+	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/xpladev/ethermint/app/ante"
 	evmtypes "github.com/xpladev/ethermint/x/evm/types"
 )
 
-func (suite AnteTestSuite) TestEthSetupContextDecorator() {
+func (suite *AnteTestSuite) TestEthSetupContextDecorator() {
 	dec := ante.NewEthSetUpContextDecorator(suite.app.EvmKeeper)
 	ethContractCreationTxParams := &evmtypes.EvmTxArgs{
 		ChainID:  suite.app.EvmKeeper.ChainID(),
@@ -25,7 +25,11 @@ func (suite AnteTestSuite) TestEthSetupContextDecorator() {
 		tx      sdk.Tx
 		expPass bool
 	}{
-		{"invalid transaction type - does not implement GasTx", &invalidTx{}, false},
+		{
+			"invalid transaction type - does not implement GasTx",
+			&invalidTx{},
+			false,
+		},
 		{
 			"success - transaction implement GasTx",
 			tx,

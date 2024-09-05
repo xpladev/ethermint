@@ -5,6 +5,8 @@ import (
 	"math"
 	"math/big"
 
+	storetypes "cosmossdk.io/store/types"
+
 	"github.com/cometbft/cometbft/crypto/tmhash"
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	tmtypes "github.com/cometbft/cometbft/types"
@@ -15,6 +17,7 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
+	"github.com/xpladev/ethermint/app"
 	"github.com/xpladev/ethermint/tests"
 	"github.com/xpladev/ethermint/x/evm/keeper"
 	"github.com/xpladev/ethermint/x/evm/statedb"
@@ -120,7 +123,7 @@ func (suite *KeeperTestSuite) TestGetCoinbaseAddress() {
 			func() {
 				header := suite.ctx.BlockHeader()
 				header.ProposerAddress = []byte{}
-				suite.ctx = suite.ctx.WithBlockHeader(header)
+				suite.ctx = suite.ctx.WithBlockHeader(header).WithConsensusParams(*app.DefaultConsensusParams)
 			},
 			false,
 		},
@@ -143,10 +146,10 @@ func (suite *KeeperTestSuite) TestGetCoinbaseAddress() {
 
 				header := suite.ctx.BlockHeader()
 				header.ProposerAddress = valConsAddr.Bytes()
-				suite.ctx = suite.ctx.WithBlockHeader(header)
+				suite.ctx = suite.ctx.WithBlockHeader(header).WithConsensusParams(*app.DefaultConsensusParams)
 
-				_, found := suite.app.StakingKeeper.GetValidatorByConsAddr(suite.ctx, valConsAddr.Bytes())
-				suite.Require().True(found)
+				_, err = suite.app.StakingKeeper.GetValidatorByConsAddr(suite.ctx, valConsAddr.Bytes())
+				suite.Require().NoError(err)
 
 				suite.Require().NotEmpty(suite.ctx.BlockHeader().ProposerAddress)
 			},
@@ -500,7 +503,7 @@ func (suite *KeeperTestSuite) TestResetGasMeterAndConsumeGas() {
 			suite.SetupTest() // reset
 
 			panicF := func() {
-				gm := sdk.NewGasMeter(10)
+				gm := storetypes.NewGasMeter(10)
 				gm.ConsumeGas(tc.gasConsumed, "")
 				ctx := suite.ctx.WithGasMeter(gm)
 				suite.app.EvmKeeper.ResetGasMeterAndConsumeGas(ctx, tc.gasUsed)

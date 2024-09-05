@@ -16,9 +16,11 @@
 package keeper
 
 import (
+	"errors"
 	"fmt"
 
-	abci "github.com/cometbft/cometbft/abci/types"
+	sdkmath "cosmossdk.io/math"
+
 	"github.com/xpladev/ethermint/x/feemarket/types"
 
 	"github.com/cosmos/cosmos-sdk/telemetry"
@@ -26,12 +28,12 @@ import (
 )
 
 // BeginBlock updates base fee
-func (k *Keeper) BeginBlock(ctx sdk.Context, _ abci.RequestBeginBlock) {
+func (k *Keeper) BeginBlock(ctx sdk.Context) error {
 	baseFee := k.CalculateBaseFee(ctx)
 
 	// return immediately if base fee is nil
 	if baseFee == nil {
-		return
+		return nil
 	}
 
 	k.SetBaseFee(ctx, baseFee)
@@ -47,15 +49,17 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, _ abci.RequestBeginBlock) {
 			sdk.NewAttribute(types.AttributeKeyBaseFee, baseFee.String()),
 		),
 	})
+	return nil
 }
 
 // EndBlock update block gas wanted.
 // The EVM end block logic doesn't update the validator set, thus it returns
 // an empty slice.
-func (k *Keeper) EndBlock(ctx sdk.Context, _ abci.RequestEndBlock) {
+func (k *Keeper) EndBlock(ctx sdk.Context) error {
 	if ctx.BlockGasMeter() == nil {
-		k.Logger(ctx).Error("block gas meter is nil when setting block gas wanted")
-		return
+		err := errors.New("block gas meter is nil when setting block gas wanted")
+		k.Logger(ctx).Error(err.Error())
+		return err
 	}
 
 	gasWanted := k.GetTransientGasWanted(ctx)
@@ -66,8 +70,8 @@ func (k *Keeper) EndBlock(ctx sdk.Context, _ abci.RequestEndBlock) {
 	// this will be keep BaseFee protected from un-penalized manipulation
 	// more info here https://github.com/evmos/ethermint/pull/1105#discussion_r888798925
 	minGasMultiplier := k.GetParams(ctx).MinGasMultiplier
-	limitedGasWanted := sdk.NewDec(int64(gasWanted)).Mul(minGasMultiplier)
-	gasWanted = sdk.MaxDec(limitedGasWanted, sdk.NewDec(int64(gasUsed))).TruncateInt().Uint64()
+	limitedGasWanted := sdkmath.LegacyNewDec(int64(gasWanted)).Mul(minGasMultiplier)
+	gasWanted = sdkmath.LegacyMaxDec(limitedGasWanted, sdkmath.LegacyNewDec(int64(gasUsed))).TruncateInt().Uint64()
 	k.SetBlockGasWanted(ctx, gasWanted)
 
 	defer func() {
@@ -79,4 +83,5 @@ func (k *Keeper) EndBlock(ctx sdk.Context, _ abci.RequestEndBlock) {
 		sdk.NewAttribute("height", fmt.Sprintf("%d", ctx.BlockHeight())),
 		sdk.NewAttribute("amount", fmt.Sprintf("%d", gasWanted)),
 	))
+	return nil
 }

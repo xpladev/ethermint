@@ -8,14 +8,15 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethparams "github.com/ethereum/go-ethereum/params"
+	"github.com/xpladev/ethermint/app"
 	"github.com/xpladev/ethermint/x/evm/keeper"
 	evmtypes "github.com/xpladev/ethermint/x/evm/types"
 )
 
 func (suite *KeeperTestSuite) TestCheckSenderBalance() {
 	hundredInt := sdkmath.NewInt(100)
-	zeroInt := sdk.ZeroInt()
-	oneInt := sdk.OneInt()
+	zeroInt := sdkmath.ZeroInt()
+	oneInt := sdkmath.OneInt()
 	fiveInt := sdkmath.NewInt(5)
 	fiftyInt := sdkmath.NewInt(50)
 	negInt := sdkmath.NewInt(-10)
@@ -272,7 +273,7 @@ func (suite *KeeperTestSuite) TestCheckSenderBalance() {
 // In practice, the two tested functions will also be sequentially executed.
 func (suite *KeeperTestSuite) TestVerifyFeeAndDeductTxCostsFromUserBalance() {
 	hundredInt := sdkmath.NewInt(100)
-	zeroInt := sdk.ZeroInt()
+	zeroInt := sdkmath.ZeroInt()
 	oneInt := sdkmath.NewInt(1)
 	fiveInt := sdkmath.NewInt(5)
 	fiftyInt := sdkmath.NewInt(50)
@@ -439,7 +440,7 @@ func (suite *KeeperTestSuite) TestVerifyFeeAndDeductTxCostsFromUserBalance() {
 			expectPassDeduct: true,
 			from:             suite.address.String(),
 			malleate: func() {
-				suite.ctx = suite.ctx.WithIsCheckTx(true)
+				suite.ctx = suite.ctx.WithIsCheckTx(true).WithConsensusParams(*app.DefaultConsensusParams)
 			},
 		},
 	}

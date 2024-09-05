@@ -278,7 +278,7 @@ func (b *Backend) EthMsgsFromTendermintBlock(
 
 		tx, err := b.clientCtx.TxConfig.TxDecoder()(tx)
 		if err != nil {
-			b.logger.Debug("failed to decode transaction in block", "height", block.Height, "error", err.Error())
+			b.logger.Debug("rpc/backend/blocks.go: failed to decode transaction in block", "height", block.Height, "error", err.Error())
 			continue
 		}
 
@@ -359,7 +359,7 @@ func (b *Backend) HeaderByHash(blockHash common.Hash) (*ethtypes.Header, error) 
 
 // BlockBloom query block bloom filter from block results
 func (b *Backend) BlockBloom(blockRes *tmrpctypes.ResultBlockResults) (ethtypes.Bloom, error) {
-	for _, event := range blockRes.EndBlockEvents {
+	for _, event := range blockRes.FinalizeBlockEvents {
 		if event.Type != evmtypes.EventTypeBlockBloom {
 			continue
 		}

@@ -20,18 +20,22 @@ import (
 	"fmt"
 	"math/big"
 
-	sdkmath "cosmossdk.io/math"
+	protov2 "google.golang.org/protobuf/proto"
 
 	errorsmod "cosmossdk.io/errors"
+	sdkmath "cosmossdk.io/math"
+
 	"github.com/cosmos/cosmos-sdk/client"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	errortypes "github.com/cosmos/cosmos-sdk/types/errors"
+	"github.com/cosmos/cosmos-sdk/types/tx/signing"
 	"github.com/cosmos/cosmos-sdk/x/auth/ante"
-	"github.com/cosmos/cosmos-sdk/x/auth/signing"
+	authsigning "github.com/cosmos/cosmos-sdk/x/auth/signing"
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 
+	evmapi "github.com/xpladev/ethermint/api/ethermint/evm/v1"
 	"github.com/xpladev/ethermint/types"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -210,6 +214,9 @@ func (msg *MsgEthereumTx) GetMsgs() []sdk.Msg {
 	return []sdk.Msg{msg}
 }
 
+// GetMsgsV2 gets the transaction's messages as google.golang.org/protobuf/proto.Message's.
+func (msg *MsgEthereumTx) GetMsgsV2() ([]protov2.Message, error) { return nil, nil }
+
 // GetSigners returns the expected signers for an Ethereum transaction message.
 // For such a message, there should exist only a single 'signer'.
 //
@@ -254,7 +261,7 @@ func (msg *MsgEthereumTx) Sign(ethSigner ethtypes.Signer, keyringSigner keyring.
 	tx := msg.AsTransaction()
 	txHash := ethSigner.Hash(tx)
 
-	sig, _, err := keyringSigner.SignByAddress(from, txHash.Bytes())
+	sig, _, err := keyringSigner.SignByAddress(from, txHash.Bytes(), signing.SignMode_SIGN_MODE_TEXTUAL)
 	if err != nil {
 		return err
 	}
@@ -346,7 +353,7 @@ func (msg *MsgEthereumTx) UnmarshalBinary(b []byte) error {
 }
 
 // BuildTx builds the canonical cosmos tx from ethereum msg
-func (msg *MsgEthereumTx) BuildTx(b client.TxBuilder, evmDenom string) (signing.Tx, error) {
+func (msg *MsgEthereumTx) BuildTx(b client.TxBuilder, evmDenom string) (authsigning.Tx, error) {
 	builder, ok := b.(authtx.ExtensionOptionsTxBuilder)
 	if !ok {
 		return nil, errors.New("unsupported builder")
@@ -380,6 +387,40 @@ func (msg *MsgEthereumTx) BuildTx(b client.TxBuilder, evmDenom string) (signing.
 	builder.SetGasLimit(msg.GetGas())
 	tx := builder.GetTx()
 	return tx, nil
+}
+
+// GetSignersV2 returns the signer of protov2 message
+func GetSignersV2(msg protov2.Message) ([][]byte, error) {
+	msgEthTx, ok := msg.(*evmapi.MsgEthereumTx)
+	if !ok {
+		return nil, fmt.Errorf("invalid msg type for evmapi.MsgEthereumTx, %T", msg)
+	}
+
+	var txData TxData
+	switch msgEthTx.Data.TypeUrl {
+	case "/ethermint.evm.v1.LegacyTx":
+		tx := LegacyTx{}
+		ModuleCdc.MustUnmarshal(msgEthTx.Data.Value, &tx)
+		txData = &tx
+	case "/ethermint.evm.v1.DynamicFeeTx":
+		tx := DynamicFeeTx{}
+		ModuleCdc.MustUnmarshal(msgEthTx.Data.Value, &tx)
+		txData = &tx
+	case "/ethermint.evm.v1.AccessListTx":
+		tx := AccessListTx{}
+		ModuleCdc.MustUnmarshal(msgEthTx.Data.Value, &tx)
+		txData = &tx
+	default:
+		return nil, fmt.Errorf("unknown tx data url, %s", msgEthTx.Data.TypeUrl)
+	}
+
+	signer := ethtypes.LatestSignerForChainID(txData.GetChainID())
+	sender, err := signer.Sender(ethtypes.NewTx(txData.AsEthereumData()))
+	if err != nil {
+		return nil, err
+	}
+
+	return [][]byte{sender.Bytes()}, nil
 }
 
 // GetSigners returns the expected signers for a MsgUpdateParams message.

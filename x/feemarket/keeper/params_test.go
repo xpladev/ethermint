@@ -7,7 +7,7 @@ import (
 )
 
 func (suite *KeeperTestSuite) TestSetGetParams() {
-	params := suite.app.FeeMarketKeeper.GetParams(suite.ctx)
+	params := types.DefaultParams()
 	suite.app.FeeMarketKeeper.SetParams(suite.ctx, params)
 	testCases := []struct {
 		name      string

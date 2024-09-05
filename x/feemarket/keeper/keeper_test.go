@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	sdkmath "cosmossdk.io/math"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -18,7 +20,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	"github.com/xpladev/ethermint/app"
@@ -89,7 +90,11 @@ func (suite *KeeperTestSuite) SetupApp(checkTx bool) {
 	require.NoError(t, err)
 	suite.consAddress = sdk.ConsAddress(priv.PubKey().Address())
 
-	suite.ctx = suite.app.BaseApp.NewContext(checkTx, tmproto.Header{
+	suite.app = app.EthSetup(checkTx, func(app *app.EthermintApp, genesis app.GenesisState) app.GenesisState {
+		return genesis
+	})
+
+	suite.ctx = suite.app.BaseApp.NewUncachedContext(checkTx, tmproto.Header{
 		Height:          1,
 		ChainID:         "ethermint_9000-1",
 		Time:            time.Now().UTC(),
@@ -122,20 +127,20 @@ func (suite *KeeperTestSuite) SetupApp(checkTx bool) {
 		CodeHash:    common.BytesToHash(crypto.Keccak256(nil)).String(),
 	}
 
+	acc.AccountNumber = suite.app.AccountKeeper.NextAccountNumber(suite.ctx)
 	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 
 	valAddr := sdk.ValAddress(suite.address.Bytes())
-	validator, err := stakingtypes.NewValidator(valAddr, priv.PubKey(), stakingtypes.Description{})
+	validator, err := stakingtypes.NewValidator(valAddr.String(), priv.PubKey(), stakingtypes.Description{})
 	require.NoError(t, err)
-	validator = stakingkeeper.TestingUpdateValidator(suite.app.StakingKeeper, suite.ctx, validator, true)
-	err = suite.app.StakingKeeper.Hooks().AfterValidatorCreated(suite.ctx, validator.GetOperator())
+	err = suite.app.StakingKeeper.SetValidatorByConsAddr(suite.ctx, validator)
 	require.NoError(t, err)
 
 	err = suite.app.StakingKeeper.SetValidatorByConsAddr(suite.ctx, validator)
 	require.NoError(t, err)
 	suite.app.StakingKeeper.SetValidator(suite.ctx, validator)
 
-	encodingConfig := encoding.MakeConfig(app.ModuleBasics)
+	encodingConfig := encoding.MakeConfig()
 	suite.clientCtx = client.Context{}.WithTxConfig(encodingConfig.TxConfig)
 	suite.ethSigner = ethtypes.LatestSignerForChainID(suite.app.EvmKeeper.ChainID())
 	suite.appCodec = encodingConfig.Codec
@@ -144,23 +149,17 @@ func (suite *KeeperTestSuite) SetupApp(checkTx bool) {
 
 // Commit commits and starts a new block with an updated context.
 func (suite *KeeperTestSuite) Commit() {
-	suite.CommitAfter(time.Second * 0)
-}
-
-// Commit commits a block at a given time.
-func (suite *KeeperTestSuite) CommitAfter(t time.Duration) {
-	header := suite.ctx.BlockHeader()
-	suite.app.EndBlock(abci.RequestEndBlock{Height: header.Height})
-	_ = suite.app.Commit()
-
-	header.Height += 1
-	header.Time = header.Time.Add(t)
-	suite.app.BeginBlock(abci.RequestBeginBlock{
-		Header: header,
+	_, err := suite.app.FinalizeBlock(&abci.RequestFinalizeBlock{
+		Height: suite.ctx.BlockHeight(),
+		Time:   suite.ctx.BlockTime(),
 	})
+	suite.Require().NoError(err)
+	suite.app.Commit()
+	header := suite.ctx.BlockHeader()
+	header.Height += 1
 
 	// update ctx
-	suite.ctx = suite.app.BaseApp.NewContext(false, header)
+	suite.ctx = suite.app.NewUncachedContext(false, header)
 
 	queryHelper := baseapp.NewQueryServerTestHelper(suite.ctx, suite.app.InterfaceRegistry())
 	types.RegisterQueryServer(queryHelper, suite.app.FeeMarketKeeper)
@@ -198,9 +197,9 @@ func (suite *KeeperTestSuite) TestSetGetGasFee() {
 		{
 			"with last block given",
 			func() {
-				suite.app.FeeMarketKeeper.SetBaseFee(suite.ctx, sdk.OneDec().BigInt())
+				suite.app.FeeMarketKeeper.SetBaseFee(suite.ctx, sdkmath.LegacyOneDec().BigInt())
 			},
-			sdk.OneDec().BigInt(),
+			sdkmath.LegacyOneDec().BigInt(),
 		},
 	}
 
