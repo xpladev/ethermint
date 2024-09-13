@@ -1,0 +1,91 @@
+syntax = "proto3";
+package ethermint.testerc.v1;
+
+import "amino/amino.proto";
+import "cosmos/msg/v1/msg.proto";
+import "cosmos_proto/cosmos.proto";
+import "gogoproto/gogo.proto";
+
+option go_package = "github.com/xpladev/ethermint/x/testerc/types";
+
+// Msg defines the Msg service.
+service Msg {
+  option (cosmos.msg.v1.service) = true;
+
+  // Transfer moves a `value` amount of tokens from the caller's account to `to`.
+  rpc Transfer(MsgTransfer) returns (MsgTransferResponse);
+
+  // Approve allows `spender` to withdraw from the caller's account multiple times, up to the `value` amount.
+  rpc Approve(MsgApprove) returns (MsgApproveResponse);
+
+  // TransferFrom moves `value` amount of tokens from `from` to `to` using the allowance mechanism.
+  rpc TransferFrom(MsgTransferFrom) returns (MsgTransferFromResponse);
+}
+
+// MsgTransfer is requeset type of the Transfer RPC method
+message MsgTransfer {
+  option (cosmos.msg.v1.signer) = "sender";
+  option (amino.name) = "ethermint/x/testerc/MsgTransfer";
+
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+
+  // contract_address of an ERC20 token contract
+  string contract_address = 1;
+  // sender is the address of the sender
+  string sender = 2 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  // to is the address of the receiver
+  string to = 3 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  // amount is the amount of tokens to transfer
+  string value = 4 [(gogoproto.customtype) = "cosmossdk.io/math.Int", (gogoproto.nullable) = false];
+  ;
+}
+
+// MsgTransferResponse is response type of the Transfer RPC method
+message MsgTransferResponse {}
+
+// MsgApprove is request type of the Approve RPC method
+message MsgApprove {
+  option (cosmos.msg.v1.signer) = "sender";
+  option (amino.name) = "ethermint/x/testerc/MsgApprove";
+
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+
+  // contract_address of an ERC20 token contract
+  string contract_address = 1;
+  // sender is the address of the account that owns the tokens
+  string sender = 2 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  // spender is the address of the account that is allowed to spend the tokens
+  string spender = 3 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  // amount is the amount of tokens to allow the spender to spend
+  string value = 4 [(gogoproto.customtype) = "cosmossdk.io/math.Int", (gogoproto.nullable) = false];
+  ;
+}
+
+// MsgApproveResponse is response type of the Approve RPC method
+message MsgApproveResponse {}
+
+// MsgTransferFrom is request type of the TransferFrom RPC method
+message MsgTransferFrom {
+  option (cosmos.msg.v1.signer) = "sender";
+  option (amino.name) = "ethermint/x/testerc/MsgTransferFrom";
+
+  option (gogoproto.equal) = false;
+  option (gogoproto.goproto_getters) = false;
+
+  // contract_address of an ERC20 token contract
+  string contract_address = 1;
+  // sender is the address of the sender
+  string sender = 2 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  // from is the address of the account that owns the tokens
+  string from = 3 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  // to is the address of the receiver
+  string to = 4 [(cosmos_proto.scalar) = "cosmos.AddressString"];
+  // value is the amount of tokens to transfer
+  string value = 5 [(gogoproto.customtype) = "cosmossdk.io/math.Int", (gogoproto.nullable) = false];
+  ;
+}
+
+// MsgTransferFromResponse is response type of the TransferFrom RPC method
+message MsgTransferFromResponse {}

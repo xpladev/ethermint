@@ -1,0 +1,67 @@
+syntax = "proto3";
+package ethermint.testerc.v1;
+
+import "gogoproto/gogo.proto";
+import "google/api/annotations.proto";
+
+option go_package = "github.com/xpladev/ethermint/x/testerc/types";
+
+// Query defines the gRPC querier service.
+service Query {
+  // TotalSupply queries the total supply of an ERC20 token.
+  rpc TotalSupply(QueryTotalSupplyRequest) returns (QueryTotalSupplyResponse) {
+    option (google.api.http).get = "/ethermint/testerc/v1/total_supply";
+  }
+
+  // BalanceOf returns the value of tokens owned by `account`.
+  rpc BalanceOf(QueryBalanceOfRequest) returns (QueryBalanceOfResponse) {
+    option (google.api.http).get = "/ethermint/testerc/v1/balance_of";
+  }
+
+  // Allowance returns the amount of tokens that `spender` is allowed to spend on behalf of `owner`.
+  rpc Allowance(QueryAllowanceRequest) returns (QueryAllowanceResponse) {
+    option (google.api.http).get = "/ethermint/testerc/v1/allowance";
+  }
+}
+
+// QueryTotalSupplyRequest is requset type of the Query/TotalSupply RPC method.
+message QueryTotalSupplyRequest {
+  // contract_address of an ERC20 token contract
+  string contract_address = 1;
+}
+
+// QueryTotalSupplyResponse is response type of the Query/TotalSupply RPC method.
+message QueryTotalSupplyResponse {
+  // total_supply of an ERC20 token
+  string amount = 1 [(gogoproto.customtype) = "cosmossdk.io/math.Int", (gogoproto.nullable) = false];
+}
+
+// QueryBalanceOfRequest is request type of the Query/BalanceOf RPC method.
+message QueryBalanceOfRequest {
+  // contract_address of an ERC20 token contract
+  string contract_address = 1;
+  // account is the address of the account to query for balance
+  string account = 2;
+}
+
+// QueryBalanceOfResponse is response type of the Query/BalanceOf RPC method.
+message QueryBalanceOfResponse {
+  // amount of tokens owned by the account
+  string amount = 1 [(gogoproto.customtype) = "cosmossdk.io/math.Int", (gogoproto.nullable) = false];
+}
+
+// QueryAllowanceRequest is request type of the Query/Allowance RPC method.
+message QueryAllowanceRequest {
+  // contract_address of an ERC20 token contract
+  string contract_address = 1;
+  // owner is the address of the account which owns the tokens
+  string owner = 2;
+  // spender is the address of the account which is approved to spend the tokens
+  string spender = 3;
+}
+
+// QueryAllowanceResponse is response type of the Query/Allowance RPC method.
+message QueryAllowanceResponse {
+  // amount of tokens that the spender is allowed to spend on behalf of the owner
+  string amount = 1 [(gogoproto.customtype) = "cosmossdk.io/math.Int", (gogoproto.nullable) = false];
+}

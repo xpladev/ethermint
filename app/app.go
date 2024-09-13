@@ -151,6 +151,9 @@ import (
 	"github.com/xpladev/ethermint/x/feemarket"
 	feemarketkeeper "github.com/xpladev/ethermint/x/feemarket/keeper"
 	feemarkettypes "github.com/xpladev/ethermint/x/feemarket/types"
+	testerckeeper "github.com/xpladev/ethermint/x/testerc/keeper"
+	testercmodule "github.com/xpladev/ethermint/x/testerc/module"
+	testerctypes "github.com/xpladev/ethermint/x/testerc/types"
 
 	consensusparamkeeper "github.com/cosmos/cosmos-sdk/x/consensus/keeper"
 	consensusparamtypes "github.com/cosmos/cosmos-sdk/x/consensus/types"
@@ -191,6 +194,7 @@ var (
 		icatypes.ModuleName:            nil,
 		evmtypes.ModuleName:            {authtypes.Minter, authtypes.Burner}, // used for secure addition and subtraction of balance using module account
 		erc20types.ModuleName:          {authtypes.Minter, authtypes.Burner},
+		testerctypes.ModuleName:        nil,
 	}
 
 	// module accounts that are allowed to receive tokens
@@ -251,6 +255,7 @@ type EthermintApp struct {
 	EvmKeeper       *evmkeeper.Keeper
 	FeeMarketKeeper feemarketkeeper.Keeper
 	Erc20Keeper     erc20keeper.Keeper
+	TestErcKeeper   testerckeeper.Keeper
 
 	// the module manager
 	ModuleManager      *module.Manager
@@ -319,7 +324,7 @@ func NewEthermintApp(
 		// ica keys
 		icahosttypes.StoreKey,
 		// ethermint keys
-		evmtypes.StoreKey, feemarkettypes.StoreKey, erc20types.StoreKey,
+		evmtypes.StoreKey, feemarkettypes.StoreKey, erc20types.StoreKey, testerctypes.StoreKey,
 	)
 
 	// Add the EVM transient store key
@@ -501,6 +506,15 @@ func NewEthermintApp(
 		app.AccountKeeper, app.BankKeeper, app.EvmKeeper, app.StakingKeeper,
 	)
 
+	app.TestErcKeeper = testerckeeper.NewKeeper(
+		appCodec,
+		runtime.NewKVStoreService(keys[testerctypes.StoreKey]),
+		logger,
+		authtypes.NewModuleAddress(govtypes.ModuleName).String(),
+		app.AccountKeeper,
+		app.EvmKeeper,
+	)
+
 	// Create IBC Keeper
 	app.IBCKeeper = ibckeeper.NewKeeper(
 		appCodec, keys[ibcexported.StoreKey],
@@ -658,6 +672,7 @@ func NewEthermintApp(
 		feemarket.NewAppModule(app.FeeMarketKeeper, feeMarketSs),
 		evm.NewAppModule(app.EvmKeeper, app.AccountKeeper, evmSs),
 		erc20.NewAppModule(app.Erc20Keeper, app.AccountKeeper, app.GetSubspace(erc20types.ModuleName)),
+		testercmodule.NewAppModule(appCodec, app.TestErcKeeper, app.AccountKeeper, app.BankKeeper),
 	)
 
 	// BasicModuleManager defines the module BasicManager which is in charge of setting up basic,
@@ -715,6 +730,7 @@ func NewEthermintApp(
 		paramstypes.ModuleName,
 		vestingtypes.ModuleName,
 		erc20types.ModuleName,
+		testerctypes.ModuleName,
 		consensusparamtypes.ModuleName,
 	)
 
@@ -743,6 +759,7 @@ func NewEthermintApp(
 		upgradetypes.ModuleName,
 		vestingtypes.ModuleName,
 		erc20types.ModuleName,
+		testerctypes.ModuleName,
 		consensusparamtypes.ModuleName,
 	)
 
@@ -778,6 +795,7 @@ func NewEthermintApp(
 		upgradetypes.ModuleName,
 		vestingtypes.ModuleName,
 		erc20types.ModuleName,
+		testerctypes.ModuleName,
 		consensusparamtypes.ModuleName,
 		// NOTE: crisis module must go at the end to check for invariants on each module
 		crisistypes.ModuleName,
