@@ -34,6 +34,11 @@ func NewKeeper(
 	accountKeeper types.AccountKeeper,
 	evmKeeper types.EVMKeeper,
 ) Keeper {
+	// ensure evm module account is set
+	if addr := accountKeeper.GetModuleAddress(types.ModuleName); addr == nil {
+		panic("the testerc module account has not been set")
+	}
+
 	if _, err := sdk.AccAddressFromBech32(authority); err != nil {
 		panic(fmt.Sprintf("invalid authority address: %s", authority))
 	}

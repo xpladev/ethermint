@@ -17,6 +17,7 @@ import (
 type AccountKeeper interface {
 	GetAccount(context.Context, sdk.AccAddress) sdk.AccountI // only used for simulation
 	GetSequence(context.Context, sdk.AccAddress) (uint64, error)
+	GetModuleAddress(string) sdk.AccAddress
 	GetModuleAccount(context.Context, string) sdk.ModuleAccountI
 }
 
