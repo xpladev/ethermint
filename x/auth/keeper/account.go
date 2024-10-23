@@ -3,29 +3,49 @@ package keeper
 import (
 	"context"
 
-	storetypes "cosmossdk.io/store/types"
-
+	errorsmod "cosmossdk.io/errors"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
+
+// HasAccount implements AccountKeeperI.
+func (ak AccountKeeper) HasAccount(ctx context.Context, addr sdk.AccAddress) bool {
+	addr = ak.getSliceAddress(ctx, addr)
+	has, _ := ak.Accounts.Has(ctx, addr)
+	return has
+}
 
 // GetAccount implements AccountKeeperI.
 func (ak AccountKeeper) GetAccount(ctx context.Context, addr sdk.AccAddress) (acc sdk.AccountI) {
-	store := ak.storeService.OpenKVStore(ctx)
-	addrbz := append(authtypes.AddressStoreKeyPrefix, addr.Bytes()...)
-	iterator, err := store.Iterator(addrbz, storetypes.PrefixEndBytes(addrbz))
-	if err != nil {
-		ak.Logger(ctx).Error("failed to get Iterator", "error", err)
-		return nil
-	}
-	defer iterator.Close()
-	if !iterator.Valid() {
-		return nil
+	addr = ak.getSliceAddress(ctx, addr)
+	return ak.AccountKeeper.GetAccount(ctx, addr)
+}
+
+// GetSequence Returns the Sequence of the account at address
+func (ak AccountKeeper) GetSequence(ctx context.Context, addr sdk.AccAddress) (uint64, error) {
+	acc := ak.GetAccount(ctx, addr)
+	if acc == nil {
+		return 0, errorsmod.Wrapf(sdkerrors.ErrUnknownAddress, "account %s does not exist", addr)
 	}
 
-	err = ak.cdc.UnmarshalInterface(iterator.Value(), &acc)
-	if err != nil {
-		panic(err)
+	return acc.GetSequence(), nil
+}
+
+// SetAccount implements AccountKeeperI.
+func (ak AccountKeeper) SetAccount(ctx context.Context, acc sdk.AccountI) {
+	address := acc.GetAddress()
+	if len(address) != 20 {
+		sliceAddress := address[len(address)-20:]
+		ak.SliceAddresses.Set(ctx, sliceAddress, address)
 	}
-	return acc
+	ak.AccountKeeper.SetAccount(ctx, acc)
+}
+
+func (ak AccountKeeper) getSliceAddress(ctx context.Context, addr sdk.AccAddress) sdk.AccAddress {
+	originalAddress, err := ak.SliceAddresses.Get(ctx, addr)
+	if err != nil {
+		return addr
+	}
+
+	return originalAddress
 }
