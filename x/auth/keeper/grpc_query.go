@@ -26,14 +26,6 @@ type queryServer struct {
 	k AccountKeeper
 }
 
-func (s queryServer) AccountAddressByID(ctx context.Context, req *types.QueryAccountAddressByIDRequest) (*types.QueryAccountAddressByIDResponse, error) {
-	return s.QueryServer.AccountAddressByID(ctx, req)
-}
-
-func (s queryServer) Accounts(ctx context.Context, req *types.QueryAccountsRequest) (*types.QueryAccountsResponse, error) {
-	return s.QueryServer.Accounts(ctx, req)
-}
-
 // Account returns account details based on address
 func (s queryServer) Account(ctx context.Context, req *types.QueryAccountRequest) (*types.QueryAccountResponse, error) {
 	if req == nil {
@@ -59,30 +51,6 @@ func (s queryServer) Account(ctx context.Context, req *types.QueryAccountRequest
 	}
 
 	return &types.QueryAccountResponse{Account: any}, nil
-}
-
-func (s queryServer) Params(c context.Context, req *types.QueryParamsRequest) (*types.QueryParamsResponse, error) {
-	return s.QueryServer.Params(c, req)
-}
-
-func (s queryServer) ModuleAccounts(c context.Context, req *types.QueryModuleAccountsRequest) (*types.QueryModuleAccountsResponse, error) {
-	return s.QueryServer.ModuleAccounts(c, req)
-}
-
-func (s queryServer) ModuleAccountByName(c context.Context, req *types.QueryModuleAccountByNameRequest) (*types.QueryModuleAccountByNameResponse, error) {
-	return s.QueryServer.ModuleAccountByName(c, req)
-}
-
-func (s queryServer) Bech32Prefix(ctx context.Context, req *types.Bech32PrefixRequest) (*types.Bech32PrefixResponse, error) {
-	return s.QueryServer.Bech32Prefix(ctx, req)
-}
-
-func (s queryServer) AddressBytesToString(ctx context.Context, req *types.AddressBytesToStringRequest) (*types.AddressBytesToStringResponse, error) {
-	return s.QueryServer.AddressBytesToString(ctx, req)
-}
-
-func (s queryServer) AddressStringToBytes(ctx context.Context, req *types.AddressStringToBytesRequest) (*types.AddressStringToBytesResponse, error) {
-	return s.QueryServer.AddressStringToBytes(ctx, req)
 }
 
 // AccountInfo implements the AccountInfo query.
