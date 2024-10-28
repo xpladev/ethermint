@@ -110,10 +110,11 @@ import (
 	"github.com/cosmos/ibc-go/modules/capability"
 	capabilitykeeper "github.com/cosmos/ibc-go/modules/capability/keeper"
 	capabilitytypes "github.com/cosmos/ibc-go/modules/capability/types"
+	"github.com/cosmos/ibc-go/v8/modules/apps/transfer"
 	ethermintbank "github.com/xpladev/ethermint/x/bank"
 	ethermintbankkeeper "github.com/xpladev/ethermint/x/bank/keeper"
 
-	ibctransfer "github.com/cosmos/ibc-go/v8/modules/apps/transfer"
+	ibctransferkeeper "github.com/cosmos/ibc-go/v8/modules/apps/transfer/keeper"
 	ibctransfertypes "github.com/cosmos/ibc-go/v8/modules/apps/transfer/types"
 	ibc "github.com/cosmos/ibc-go/v8/modules/core"
 	ibcclient "github.com/cosmos/ibc-go/v8/modules/core/02-client"
@@ -141,10 +142,6 @@ import (
 	ethermint "github.com/xpladev/ethermint/types"
 	ethermintauth "github.com/xpladev/ethermint/x/auth"
 	ethermintauthkeeper "github.com/xpladev/ethermint/x/auth/keeper"
-	"github.com/xpladev/ethermint/x/erc20"
-	erc20client "github.com/xpladev/ethermint/x/erc20/client"
-	erc20keeper "github.com/xpladev/ethermint/x/erc20/keeper"
-	erc20types "github.com/xpladev/ethermint/x/erc20/types"
 	"github.com/xpladev/ethermint/x/evm"
 	evmkeeper "github.com/xpladev/ethermint/x/evm/keeper"
 	evmtypes "github.com/xpladev/ethermint/x/evm/types"
@@ -154,10 +151,6 @@ import (
 
 	consensusparamkeeper "github.com/cosmos/cosmos-sdk/x/consensus/keeper"
 	consensusparamtypes "github.com/cosmos/cosmos-sdk/x/consensus/types"
-
-	// NOTE: override ICS20 keeper to support IBC transfers of ERC20 tokens
-	"github.com/xpladev/ethermint/x/ibc/transfer"
-	transferkeeper "github.com/xpladev/ethermint/x/ibc/transfer/keeper"
 
 	// Force-load the tracer engines to trigger registration due to Go-Ethereum v1.10.15 changes
 	_ "github.com/ethereum/go-ethereum/eth/tracers/js"
@@ -190,7 +183,6 @@ var (
 		ibctransfertypes.ModuleName:    {authtypes.Minter, authtypes.Burner},
 		icatypes.ModuleName:            nil,
 		evmtypes.ModuleName:            {authtypes.Minter, authtypes.Burner}, // used for secure addition and subtraction of balance using module account
-		erc20types.ModuleName:          {authtypes.Minter, authtypes.Burner},
 	}
 
 	// module accounts that are allowed to receive tokens
@@ -240,7 +232,7 @@ type EthermintApp struct {
 	IBCKeeper             *ibckeeper.Keeper // IBC Keeper must be a pointer in the app, so we can SetRouter on it correctly
 	ICAHostKeeper         icahostkeeper.Keeper
 	EvidenceKeeper        evidencekeeper.Keeper
-	TransferKeeper        transferkeeper.Keeper
+	TransferKeeper        ibctransferkeeper.Keeper
 	ConsensusParamsKeeper consensusparamkeeper.Keeper
 
 	// make scoped keepers public for test purposes
@@ -250,7 +242,6 @@ type EthermintApp struct {
 	// ethermint keepers
 	EvmKeeper       *evmkeeper.Keeper
 	FeeMarketKeeper feemarketkeeper.Keeper
-	Erc20Keeper     erc20keeper.Keeper
 
 	// the module manager
 	ModuleManager      *module.Manager
@@ -319,7 +310,7 @@ func NewEthermintApp(
 		// ica keys
 		icahosttypes.StoreKey,
 		// ethermint keys
-		evmtypes.StoreKey, feemarkettypes.StoreKey, erc20types.StoreKey,
+		evmtypes.StoreKey, feemarkettypes.StoreKey,
 	)
 
 	// Add the EVM transient store key
@@ -497,13 +488,6 @@ func NewEthermintApp(
 		app.EvmKeeper,
 	)
 
-	//TODO
-	app.Erc20Keeper = erc20keeper.NewKeeper(
-		keys[erc20types.StoreKey], appCodec,
-		authtypes.NewModuleAddress(govtypes.ModuleName),
-		app.AccountKeeper, app.BankKeeper, app.EvmKeeper, app.StakingKeeper,
-	)
-
 	// Create IBC Keeper
 	app.IBCKeeper = ibckeeper.NewKeeper(
 		appCodec, keys[ibcexported.StoreKey],
@@ -517,8 +501,7 @@ func NewEthermintApp(
 	govRouter := govv1beta1.NewRouter()
 	govRouter.AddRoute(govtypes.RouterKey, govv1beta1.ProposalHandler).
 		AddRoute(paramproposal.RouterKey, params.NewParamChangeProposalHandler(app.ParamsKeeper)).
-		AddRoute(ibcclienttypes.RouterKey, ibcclient.NewClientProposalHandler(app.IBCKeeper.ClientKeeper)).
-		AddRoute(erc20types.RouterKey, erc20.NewErc20ProposalHandler(&app.Erc20Keeper))
+		AddRoute(ibcclienttypes.RouterKey, ibcclient.NewClientProposalHandler(app.IBCKeeper.ClientKeeper))
 	govConfig := govtypes.DefaultConfig()
 	/*
 		Example of setting gov params:
@@ -542,20 +525,15 @@ func NewEthermintApp(
 	)
 
 	app.EvmKeeper = app.EvmKeeper.SetHooks(
-		evmkeeper.NewMultiEvmHooks(
-			app.Erc20Keeper.Hooks(),
-		),
+		evmkeeper.NewMultiEvmHooks(),
 	)
 
 	// Create Transfer Keepers
-	app.TransferKeeper = transferkeeper.NewKeeper(
+	app.TransferKeeper = ibctransferkeeper.NewKeeper(
 		appCodec, keys[ibctransfertypes.StoreKey], app.GetSubspace(ibctransfertypes.ModuleName),
 		app.IBCKeeper.ChannelKeeper, app.IBCKeeper.ChannelKeeper, app.IBCKeeper.PortKeeper,
-		app.AccountKeeper, app.BankKeeper, scopedTransferKeeper, app.Erc20Keeper, authAddr,
+		app.AccountKeeper, app.BankKeeper, scopedTransferKeeper, authAddr,
 	)
-
-	// Override the ICS20 app module
-	transferModule := transfer.NewAppModule(app.TransferKeeper)
 
 	// Create the app.ICAHostKeeper
 	app.ICAHostKeeper = icahostkeeper.NewKeeper(
@@ -574,26 +552,7 @@ func NewEthermintApp(
 	// create host IBC module
 	icaHostIBCModule := icahost.NewIBCModule(app.ICAHostKeeper)
 
-	/*
-		Create Transfer Stack
-
-		transfer stack contains (from bottom to top):
-			- ERC-20 Middleware
-		 	- Recovery Middleware
-		 	- Airdrop Claims Middleware
-			- IBC Transfer
-
-		SendPacket, since it is originating from the application to core IBC:
-		 	transferKeeper.SendPacket -> claim.SendPacket -> recovery.SendPacket -> erc20.SendPacket -> channel.SendPacket
-
-		RecvPacket, message that originates from core IBC and goes down to app, the flow is the other way
-			channel.RecvPacket -> erc20.OnRecvPacket -> recovery.OnRecvPacket -> claim.OnRecvPacket -> transfer.OnRecvPacket
-	*/
-
-	// create IBC module from top to bottom of stack
-	var transferStack porttypes.IBCModule
-	transferStack = transfer.NewIBCModule(app.TransferKeeper)
-	transferStack = erc20.NewIBCMiddleware(app.Erc20Keeper, transferStack)
+	transferStack := transfer.NewIBCModule(app.TransferKeeper)
 
 	// Create static IBC router, add transfer route, then set and seal it
 	ibcRouter := porttypes.NewRouter()
@@ -656,11 +615,10 @@ func NewEthermintApp(
 		ibc.NewAppModule(app.IBCKeeper),
 		ibctm.AppModule{},
 		ica.NewAppModule(nil, &app.ICAHostKeeper),
-		transferModule,
+		transfer.NewAppModule(app.TransferKeeper),
 		// Ethermint app modules
 		feemarket.NewAppModule(app.FeeMarketKeeper, feeMarketSs),
 		evm.NewAppModule(app.EvmKeeper, app.AccountKeeper, evmSs),
-		erc20.NewAppModule(app.Erc20Keeper, app.AccountKeeper, app.GetSubspace(erc20types.ModuleName)),
 	)
 
 	// BasicModuleManager defines the module BasicManager which is in charge of setting up basic,
@@ -674,11 +632,8 @@ func NewEthermintApp(
 			govtypes.ModuleName: gov.NewAppModuleBasic(
 				[]govclient.ProposalHandler{
 					paramsclient.ProposalHandler,
-					// ethermint proposal types
-					erc20client.RegisterCoinProposalHandler, erc20client.RegisterERC20ProposalHandler, erc20client.ToggleTokenConversionProposalHandler,
 				},
 			),
-			ibctransfertypes.ModuleName: transfer.AppModuleBasic{AppModuleBasic: &ibctransfer.AppModuleBasic{}},
 		},
 	)
 	app.BasicModuleManager.RegisterLegacyAminoCodec(cdc)
@@ -717,7 +672,6 @@ func NewEthermintApp(
 		feegrant.ModuleName,
 		paramstypes.ModuleName,
 		vestingtypes.ModuleName,
-		erc20types.ModuleName,
 		consensusparamtypes.ModuleName,
 	)
 
@@ -745,7 +699,6 @@ func NewEthermintApp(
 		paramstypes.ModuleName,
 		upgradetypes.ModuleName,
 		vestingtypes.ModuleName,
-		erc20types.ModuleName,
 		consensusparamtypes.ModuleName,
 	)
 
@@ -780,7 +733,6 @@ func NewEthermintApp(
 		paramstypes.ModuleName,
 		upgradetypes.ModuleName,
 		vestingtypes.ModuleName,
-		erc20types.ModuleName,
 		consensusparamtypes.ModuleName,
 		// NOTE: crisis module must go at the end to check for invariants on each module
 		crisistypes.ModuleName,
@@ -1166,6 +1118,5 @@ func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino
 	// ethermint subspaces
 	paramsKeeper.Subspace(evmtypes.ModuleName).WithKeyTable(evmtypes.ParamKeyTable()) //nolint: staticcheck
 	paramsKeeper.Subspace(feemarkettypes.ModuleName).WithKeyTable(feemarkettypes.ParamKeyTable())
-	paramsKeeper.Subspace(erc20types.ModuleName)
 	return paramsKeeper
 }
