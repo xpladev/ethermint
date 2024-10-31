@@ -24,6 +24,7 @@ import (
 	"cosmossdk.io/store/prefix"
 	storetypes "cosmossdk.io/store/types"
 
+	"github.com/cosmos/cosmos-sdk/runtime"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -52,7 +53,8 @@ func (k *Keeper) GetAccount(ctx sdk.Context, addr common.Address) *statedb.Accou
 
 // GetState loads contract state from database, implements `statedb.Keeper` interface.
 func (k *Keeper) GetState(ctx sdk.Context, addr common.Address, key common.Hash) common.Hash {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.AddressStoragePrefix(addr))
+	kstore := runtime.KVStoreAdapter(k.storeService.OpenKVStore(ctx))
+	store := prefix.NewStore(kstore, types.AddressStoragePrefix(addr))
 
 	value := store.Get(key.Bytes())
 	if len(value) == 0 {
@@ -64,13 +66,15 @@ func (k *Keeper) GetState(ctx sdk.Context, addr common.Address, key common.Hash)
 
 // GetCode loads contract code from database, implements `statedb.Keeper` interface.
 func (k *Keeper) GetCode(ctx sdk.Context, codeHash common.Hash) []byte {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixCode)
+	kstore := runtime.KVStoreAdapter(k.storeService.OpenKVStore(ctx))
+	store := prefix.NewStore(kstore, types.KeyPrefixCode)
+
 	return store.Get(codeHash.Bytes())
 }
 
 // ForEachStorage iterate contract storage, callback return false to break early
 func (k *Keeper) ForEachStorage(ctx sdk.Context, addr common.Address, cb func(key, value common.Hash) bool) {
-	store := ctx.KVStore(k.storeKey)
+	store := runtime.KVStoreAdapter(k.storeService.OpenKVStore(ctx))
 	prefix := types.AddressStoragePrefix(addr)
 
 	iterator := storetypes.KVStorePrefixIterator(store, prefix)
@@ -163,7 +167,8 @@ func (k *Keeper) SetAccount(ctx sdk.Context, addr common.Address, account stated
 
 // SetState update contract storage, delete if value is empty.
 func (k *Keeper) SetState(ctx sdk.Context, addr common.Address, key common.Hash, value []byte) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.AddressStoragePrefix(addr))
+	kstore := runtime.KVStoreAdapter(k.storeService.OpenKVStore(ctx))
+	store := prefix.NewStore(kstore, types.AddressStoragePrefix(addr))
 	action := "updated"
 	if len(value) == 0 {
 		store.Delete(key.Bytes())
@@ -180,7 +185,8 @@ func (k *Keeper) SetState(ctx sdk.Context, addr common.Address, key common.Hash,
 
 // SetCode set contract code, delete if code is empty.
 func (k *Keeper) SetCode(ctx sdk.Context, codeHash, code []byte) {
-	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixCode)
+	kstore := runtime.KVStoreAdapter(k.storeService.OpenKVStore(ctx))
+	store := prefix.NewStore(kstore, types.KeyPrefixCode)
 
 	// store or delete code
 	action := "updated"
@@ -208,7 +214,7 @@ func (k *Keeper) DeleteAccount(ctx sdk.Context, addr common.Address) error {
 		return nil
 	}
 
-	// NOTE: only Ethereum accounts (contracts) can be selfdestructed
+	// NOTE: only Ethereum accounts (contracts) can be self-destructed
 	_, ok := acct.(ethermint.EthAccountI)
 	if !ok {
 		return errorsmod.Wrapf(types.ErrInvalidAccount, "type %T, address %s", acct, addr)

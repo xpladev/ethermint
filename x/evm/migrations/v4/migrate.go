@@ -1,7 +1,7 @@
 package v4
 
 import (
-	storetypes "cosmossdk.io/store/types"
+	"cosmossdk.io/core/store"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 
@@ -14,7 +14,7 @@ import (
 // and managed by the Cosmos SDK params module and stores them directly into the x/evm module state.
 func MigrateStore(
 	ctx sdk.Context,
-	storeKey storetypes.StoreKey,
+	storeService store.KVStoreService,
 	legacySubspace types.Subspace,
 	cdc codec.BinaryCodec,
 ) error {
@@ -29,7 +29,7 @@ func MigrateStore(
 	chainCfgBz := cdc.MustMarshal(&params.ChainConfig)
 	extraEIPsBz := cdc.MustMarshal(&v4types.ExtraEIPs{EIPs: params.ExtraEIPs})
 
-	store := ctx.KVStore(storeKey)
+	store := storeService.OpenKVStore(ctx)
 	store.Set(types.ParamStoreKeyEVMDenom, []byte(params.EvmDenom))
 	store.Set(types.ParamStoreKeyExtraEIPs, extraEIPsBz)
 	store.Set(types.ParamStoreKeyChainConfig, chainCfgBz)
