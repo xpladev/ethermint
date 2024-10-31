@@ -477,7 +477,7 @@ func NewEthermintApp(
 	app.FeeMarketKeeper = feemarketkeeper.NewKeeper(
 		appCodec,
 		authtypes.NewModuleAddress(govtypes.ModuleName),
-		keys[feemarkettypes.StoreKey],
+		runtime.NewKVStoreService(keys[feemarkettypes.StoreKey]),
 		tkeys[feemarkettypes.TransientKey],
 		feeMarketSs,
 	)
@@ -486,7 +486,7 @@ func NewEthermintApp(
 	evmSs := app.GetSubspace(evmtypes.ModuleName)
 	app.EvmKeeper = evmkeeper.NewKeeper(
 		appCodec,
-		keys[evmtypes.StoreKey],
+		runtime.NewKVStoreService(keys[evmtypes.StoreKey]),
 		tkeys[evmtypes.TransientKey],
 		authtypes.NewModuleAddress(govtypes.ModuleName),
 		app.AccountKeeper, app.BankKeeper, app.StakingKeeper, app.FeeMarketKeeper,
@@ -494,7 +494,6 @@ func NewEthermintApp(
 		evmSs,
 	)
 
-	//TODO
 	app.Erc20Keeper = erc20keeper.NewKeeper(
 		keys[erc20types.StoreKey], appCodec,
 		authtypes.NewModuleAddress(govtypes.ModuleName),
