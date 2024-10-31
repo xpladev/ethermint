@@ -18,8 +18,10 @@ package keeper
 import (
 	"math/big"
 
+	"cosmossdk.io/core/store"
 	"cosmossdk.io/log"
 	storetypes "cosmossdk.io/store/types"
+
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
@@ -35,7 +37,7 @@ type Keeper struct {
 	// Protobuf codec
 	cdc codec.BinaryCodec
 	// Store key required for the Fee Market Prefix KVStore.
-	storeKey     storetypes.StoreKey
+	storeService store.KVStoreService
 	transientKey storetypes.StoreKey
 	// the address capable of executing a MsgUpdateParams message. Typically, this should be the x/gov module account.
 	authority sdk.AccAddress
@@ -45,7 +47,11 @@ type Keeper struct {
 
 // NewKeeper generates new fee market module keeper
 func NewKeeper(
-	cdc codec.BinaryCodec, authority sdk.AccAddress, storeKey, transientKey storetypes.StoreKey, ss paramstypes.Subspace,
+	cdc codec.BinaryCodec,
+	authority sdk.AccAddress,
+	storeService store.KVStoreService,
+	transientKey storetypes.StoreKey,
+	ss paramstypes.Subspace,
 ) Keeper {
 	// ensure authority account is correctly formatted
 	if err := sdk.VerifyAddressFormat(authority); err != nil {
@@ -54,7 +60,7 @@ func NewKeeper(
 
 	return Keeper{
 		cdc:          cdc,
-		storeKey:     storeKey,
+		storeService: storeService,
 		authority:    authority,
 		transientKey: transientKey,
 		ss:           ss,
@@ -74,15 +80,17 @@ func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 // SetBlockGasWanted sets the block gas wanted to the store.
 // CONTRACT: this should be only called during EndBlock.
 func (k Keeper) SetBlockGasWanted(ctx sdk.Context, gas uint64) {
-	store := ctx.KVStore(k.storeKey)
+	store := k.storeService.OpenKVStore(ctx)
 	gasBz := sdk.Uint64ToBigEndian(gas)
-	store.Set(types.KeyPrefixBlockGasWanted, gasBz)
+	// TODO error handling
+	_ = store.Set(types.KeyPrefixBlockGasWanted, gasBz)
 }
 
 // GetBlockGasWanted returns the last block gas wanted value from the store.
 func (k Keeper) GetBlockGasWanted(ctx sdk.Context) uint64 {
-	store := ctx.KVStore(k.storeKey)
-	bz := store.Get(types.KeyPrefixBlockGasWanted)
+	store := k.storeService.OpenKVStore(ctx)
+	// TODO error handling
+	bz, _ := store.Get(types.KeyPrefixBlockGasWanted)
 	if len(bz) == 0 {
 		return 0
 	}
@@ -118,8 +126,9 @@ func (k Keeper) AddTransientGasWanted(ctx sdk.Context, gasWanted uint64) (uint64
 // return nil if base fee is not enabled
 // TODO: Figure out if this will be deleted ?
 func (k Keeper) GetBaseFeeV1(ctx sdk.Context) *big.Int {
-	store := ctx.KVStore(k.storeKey)
-	bz := store.Get(KeyPrefixBaseFeeV1)
+	store := k.storeService.OpenKVStore(ctx)
+	// TODO error handling
+	bz, _ := store.Get(KeyPrefixBaseFeeV1)
 	if len(bz) == 0 {
 		return nil
 	}
