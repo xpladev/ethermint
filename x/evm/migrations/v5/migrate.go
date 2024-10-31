@@ -1,7 +1,7 @@
 package v5
 
 import (
-	storetypes "cosmossdk.io/store/types"
+	"cosmossdk.io/core/store"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/xpladev/ethermint/x/evm/types"
@@ -15,7 +15,7 @@ import (
 // a single params key.
 func MigrateStore(
 	ctx sdk.Context,
-	storeKey storetypes.StoreKey,
+	storeService store.KVStoreService,
 	cdc codec.BinaryCodec,
 ) error {
 	var (
@@ -24,11 +24,18 @@ func MigrateStore(
 		params      types.Params
 	)
 
-	store := ctx.KVStore(storeKey)
+	store := storeService.OpenKVStore(ctx)
 
-	denom := string(store.Get(types.ParamStoreKeyEVMDenom))
+	denomBz, err := store.Get(types.ParamStoreKeyEVMDenom)
+	if err != nil {
+		return err
+	}
+	denom := string(denomBz)
 
-	extraEIPsBz := store.Get(types.ParamStoreKeyExtraEIPs)
+	extraEIPsBz, err := store.Get(types.ParamStoreKeyExtraEIPs)
+	if err != nil {
+		return err
+	}
 	cdc.MustUnmarshal(extraEIPsBz, &extraEIPs)
 
 	// revert ExtraEIP change for Ethermint testnet
@@ -36,15 +43,27 @@ func MigrateStore(
 		extraEIPs.EIPs = []int64{}
 	}
 
-	chainCfgBz := store.Get(types.ParamStoreKeyChainConfig)
+	chainCfgBz, err := store.Get(types.ParamStoreKeyChainConfig)
+	if err != nil {
+		return err
+	}
 	cdc.MustUnmarshal(chainCfgBz, &chainConfig)
 
 	params.EvmDenom = denom
 	params.ExtraEIPs = extraEIPs.EIPs
 	params.ChainConfig = chainConfig
-	params.EnableCreate = store.Has(types.ParamStoreKeyEnableCreate)
-	params.EnableCall = store.Has(types.ParamStoreKeyEnableCall)
-	params.AllowUnprotectedTxs = store.Has(types.ParamStoreKeyAllowUnprotectedTxs)
+	params.EnableCreate, err = store.Has(types.ParamStoreKeyEnableCreate)
+	if err != nil {
+		return err
+	}
+	params.EnableCall, err = store.Has(types.ParamStoreKeyEnableCall)
+	if err != nil {
+		return err
+	}
+	params.AllowUnprotectedTxs, err = store.Has(types.ParamStoreKeyAllowUnprotectedTxs)
+	if err != nil {
+		return err
+	}
 
 	store.Delete(types.ParamStoreKeyChainConfig)
 	store.Delete(types.ParamStoreKeyExtraEIPs)
@@ -59,6 +78,10 @@ func MigrateStore(
 
 	bz := cdc.MustMarshal(&params)
 
-	store.Set(types.KeyPrefixParams, bz)
+	err = store.Set(types.KeyPrefixParams, bz)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
