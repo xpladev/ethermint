@@ -138,6 +138,7 @@ import (
 
 	"github.com/xpladev/ethermint/app/ante"
 	"github.com/xpladev/ethermint/ethereum/eip712"
+	"github.com/xpladev/ethermint/precompile"
 	srvflags "github.com/xpladev/ethermint/server/flags"
 	ethermint "github.com/xpladev/ethermint/types"
 	ethermintauth "github.com/xpladev/ethermint/x/auth"
@@ -487,6 +488,9 @@ func NewEthermintApp(
 		logger,
 		app.EvmKeeper,
 	)
+
+	// Register the precompiled contracts
+	precompile.RegistPrecompiledContract(app.BankKeeper)
 
 	// Create IBC Keeper
 	app.IBCKeeper = ibckeeper.NewKeeper(
