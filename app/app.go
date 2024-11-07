@@ -490,7 +490,7 @@ func NewEthermintApp(
 	)
 
 	// Register the precompiled contracts
-	precompile.RegistPrecompiledContract(app.BankKeeper)
+	precompile.RegistPrecompiledContract(app.BankKeeper, stakingkeeper.NewMsgServerImpl(app.StakingKeeper))
 
 	// Create IBC Keeper
 	app.IBCKeeper = ibckeeper.NewKeeper(
