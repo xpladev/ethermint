@@ -7,6 +7,7 @@ import "ethermint/evm/v1/evm.proto";
 import "gogoproto/gogo.proto";
 import "google/api/annotations.proto";
 import "google/protobuf/any.proto";
+import "amino/amino.proto";
 
 option go_package = "github.com/xpladev/ethermint/x/evm/types";
 
@@ -25,6 +26,7 @@ service Msg {
 // MsgEthereumTx encapsulates an Ethereum transaction as an SDK message.
 message MsgEthereumTx {
   option (gogoproto.goproto_getters) = false;
+  option (amino.name) = "ethermint/MsgEthereumTx";
 
   // data is inner transaction data of the Ethereum transaction
   google.protobuf.Any data = 1;
@@ -90,8 +92,12 @@ message AccessListTx {
   // data is the data payload bytes of the transaction.
   bytes data = 7;
   // accesses is an array of access tuples
-  repeated AccessTuple accesses = 8
-      [(gogoproto.castrepeated) = "AccessList", (gogoproto.jsontag) = "accessList", (gogoproto.nullable) = false];
+  repeated AccessTuple accesses = 8 [
+    (gogoproto.castrepeated) = "AccessList",
+    (gogoproto.jsontag) = "accessList",
+    (gogoproto.nullable) = false,
+    (amino.dont_omitempty) = true
+  ];
   // v defines the signature value
   bytes v = 9;
   // r defines the signature value
@@ -126,8 +132,12 @@ message DynamicFeeTx {
   // data is the data payload bytes of the transaction.
   bytes data = 8;
   // accesses is an array of access tuples
-  repeated AccessTuple accesses = 9
-      [(gogoproto.castrepeated) = "AccessList", (gogoproto.jsontag) = "accessList", (gogoproto.nullable) = false];
+  repeated AccessTuple accesses = 9 [
+    (gogoproto.castrepeated) = "AccessList",
+    (gogoproto.jsontag) = "accessList",
+    (gogoproto.nullable) = false,
+    (amino.dont_omitempty) = true
+  ];
   // v defines the signature value
   bytes v = 10;
   // r defines the signature value
@@ -164,13 +174,14 @@ message MsgEthereumTxResponse {
 // MsgUpdateParams defines a Msg for updating the x/evm module parameters.
 message MsgUpdateParams {
   option (cosmos.msg.v1.signer) = "authority";
+  option (amino.name) = "ethermint/x/evm/MsgUpdateParams";
 
   // authority is the address of the governance account.
   string authority = 1 [(cosmos_proto.scalar) = "cosmos.AddressString"];
 
   // params defines the x/evm parameters to update.
   // NOTE: All parameters must be supplied.
-  Params params = 2 [(gogoproto.nullable) = false];
+  Params params = 2 [(gogoproto.nullable) = false, (amino.dont_omitempty) = true];
 }
 
 // MsgUpdateParamsResponse defines the response structure for executing a
