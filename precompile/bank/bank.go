@@ -107,9 +107,8 @@ func (p PrecompiledBank) send(ctx sdk.Context, sender common.Address, method *ab
 		return nil, err
 	}
 
-	accSender := sdk.AccAddress(sender.Bytes())
-	if !fromAddress.Equals(accSender) {
-		return nil, errors.New("invalid sender")
+	if err = util.ValidateSigner(fromAddress, sender); err != nil {
+		return nil, err
 	}
 
 	toAddress, err := util.GetAccAddress(args[1])

@@ -58,3 +58,10 @@ func GetString(src interface{}) (string, error) {
 	}
 	return res, nil
 }
+
+func ValidateSigner(sender sdk.AccAddress, caller common.Address) error {
+	if !bytes.Equal(sender.Bytes(), caller.Bytes()) {
+		return errors.New("invalid signer")
+	}
+	return nil
+}
