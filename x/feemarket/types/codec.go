@@ -2,6 +2,7 @@ package types
 
 import (
 	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/codec/legacy"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/msgservice"
@@ -15,11 +16,6 @@ var (
 
 	// AminoCdc is a amino codec created to support amino JSON compatible msgs.
 	AminoCdc = codec.NewAminoCodec(amino)
-)
-
-const (
-	// Amino names
-	updateParamsName = "ethermint/feemarket/MsgUpdateParams"
 )
 
 // NOTE: This is required for the GetSignBytes function
@@ -39,5 +35,7 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 
 // RegisterLegacyAminoCodec required for EIP-712
 func RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) {
-	cdc.RegisterConcrete(&MsgUpdateParams{}, updateParamsName, nil)
+	legacy.RegisterAminoMsg(cdc, &MsgUpdateParams{}, "ethermint/x/feemarket/MsgUpdateParams")
+
+	cdc.RegisterConcrete(Params{}, "ethermint/x/feemarket/Params", nil)
 }
