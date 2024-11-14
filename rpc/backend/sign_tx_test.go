@@ -251,6 +251,7 @@ func (suite *BackendTestSuite) TestSignTypedData() {
 
 			if tc.expPass {
 				sigHash, _, err := apitypes.TypedDataAndHash(tc.inputTypedData)
+				suite.Require().NoError(err)
 				signature, _, err := suite.backend.clientCtx.Keyring.SignByAddress((sdk.AccAddress)(from.Bytes()), sigHash, signing.SignMode_SIGN_MODE_TEXTUAL)
 				signature[goethcrypto.RecoveryIDOffset] += 27
 				suite.Require().NoError(err)
