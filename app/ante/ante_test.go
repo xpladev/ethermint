@@ -28,7 +28,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/core/types"
 	ethparams "github.com/ethereum/go-ethereum/params"
-	"github.com/xpladev/ethermint/app"
 	"github.com/xpladev/ethermint/app/ante"
 	"github.com/xpladev/ethermint/crypto/ethsecp256k1"
 	"github.com/xpladev/ethermint/tests"
@@ -909,7 +908,7 @@ func (suite *AnteTestSuite) TestAnteHandler() {
 		suite.Run(tc.name, func() {
 			setup()
 
-			suite.ctx = suite.ctx.WithIsCheckTx(tc.checkTx).WithIsReCheckTx(tc.reCheckTx).WithConsensusParams(*app.DefaultConsensusParams)
+			suite.ctx = suite.ctx.WithIsCheckTx(tc.checkTx).WithIsReCheckTx(tc.reCheckTx)
 
 			// expConsumed := params.TxGasContractCreation + params.TxGas
 			_, err := suite.anteHandler(suite.ctx, tc.txFn(), false)
@@ -1094,7 +1093,7 @@ func (suite *AnteTestSuite) TestAnteHandlerWithDynamicTxFee() {
 			suite.Require().NoError(acc.SetSequence(1))
 			suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 
-			suite.ctx = suite.ctx.WithIsCheckTx(tc.checkTx).WithIsReCheckTx(tc.reCheckTx).WithConsensusParams(*app.DefaultConsensusParams)
+			suite.ctx = suite.ctx.WithIsCheckTx(tc.checkTx).WithIsReCheckTx(tc.reCheckTx)
 			suite.app.EvmKeeper.SetBalance(suite.ctx, addr, big.NewInt((ethparams.InitialBaseFee+10)*100000))
 			_, err := suite.anteHandler(suite.ctx, tc.txFn(), false)
 			if tc.expPass {
@@ -1202,7 +1201,7 @@ func (suite *AnteTestSuite) TestAnteHandlerWithParams() {
 			suite.Require().NoError(acc.SetSequence(1))
 			suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 
-			suite.ctx = suite.ctx.WithIsCheckTx(true).WithConsensusParams(*app.DefaultConsensusParams)
+			suite.ctx = suite.ctx.WithIsCheckTx(true)
 			suite.app.EvmKeeper.SetBalance(suite.ctx, addr, big.NewInt((ethparams.InitialBaseFee+10)*100000))
 			_, err := suite.anteHandler(suite.ctx, tc.txFn(), false)
 			if tc.expErr == nil {

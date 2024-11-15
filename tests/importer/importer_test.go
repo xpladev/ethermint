@@ -88,8 +88,7 @@ func (suite *ImporterTestSuite) DoSetupTest(t require.TestingT) {
 		NextValidatorsHash: tmhash.Sum([]byte("next_validators")),
 		ConsensusHash:      tmhash.Sum([]byte("consensus")),
 		LastResultsHash:    tmhash.Sum([]byte("last_result")),
-	}).WithConsensusParams(*app.DefaultConsensusParams)
-
+	})
 }
 
 func (suite *ImporterTestSuite) SetupTest() {
@@ -138,7 +137,7 @@ func (suite *ImporterTestSuite) TestImportBlocks() {
 		tmheader := suite.ctx.BlockHeader()
 		// fix due to that begin block can't have height 0
 		tmheader.Height = int64(block.NumberU64()) + 1
-		ctx := suite.app.NewUncachedContext(false, tmheader).WithConsensusParams(*app.DefaultConsensusParams)
+		ctx := suite.app.NewUncachedContext(false, tmheader)
 		suite.app.BeginBlocker(ctx)
 		vmdb := statedb.New(ctx, suite.app.EvmKeeper, statedb.NewEmptyTxConfig(common.BytesToHash(ctx.HeaderHash())))
 

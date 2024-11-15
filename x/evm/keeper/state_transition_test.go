@@ -17,7 +17,6 @@ import (
 	"github.com/ethereum/go-ethereum/core"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/params"
-	"github.com/xpladev/ethermint/app"
 	"github.com/xpladev/ethermint/tests"
 	"github.com/xpladev/ethermint/x/evm/keeper"
 	"github.com/xpladev/ethermint/x/evm/statedb"
@@ -123,7 +122,7 @@ func (suite *KeeperTestSuite) TestGetCoinbaseAddress() {
 			func() {
 				header := suite.ctx.BlockHeader()
 				header.ProposerAddress = []byte{}
-				suite.ctx = suite.ctx.WithBlockHeader(header).WithConsensusParams(*app.DefaultConsensusParams)
+				suite.ctx = suite.ctx.WithBlockHeader(header)
 			},
 			false,
 		},
@@ -146,7 +145,7 @@ func (suite *KeeperTestSuite) TestGetCoinbaseAddress() {
 
 				header := suite.ctx.BlockHeader()
 				header.ProposerAddress = valConsAddr.Bytes()
-				suite.ctx = suite.ctx.WithBlockHeader(header).WithConsensusParams(*app.DefaultConsensusParams)
+				suite.ctx = suite.ctx.WithBlockHeader(header)
 
 				_, err = suite.app.StakingKeeper.GetValidatorByConsAddr(suite.ctx, valConsAddr.Bytes())
 				suite.Require().NoError(err)
