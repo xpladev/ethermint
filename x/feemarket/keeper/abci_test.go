@@ -33,7 +33,8 @@ func (suite *KeeperTestSuite) TestEndBlock() {
 	for _, tc := range testCases {
 		suite.Run(fmt.Sprintf("Case %s", tc.name), func() {
 			suite.SetupTest() // reset
-			params := suite.app.FeeMarketKeeper.GetParams(suite.ctx)
+			params, err := suite.app.FeeMarketKeeper.GetParams(suite.ctx)
+			suite.Require().NoError(err)
 			params.NoBaseFee = tc.NoBaseFee
 			suite.app.FeeMarketKeeper.SetParams(suite.ctx, params)
 

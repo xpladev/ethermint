@@ -84,7 +84,11 @@ func (mpd MinGasPriceDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 		return ctx, errorsmod.Wrapf(errortypes.ErrInvalidType, "invalid transaction type %T, expected sdk.FeeTx", tx)
 	}
 
-	minGasPrice := mpd.feesKeeper.GetParams(ctx).MinGasPrice
+	params, err := mpd.feesKeeper.GetParams(ctx)
+	if err != nil {
+		return ctx, err
+	}
+	minGasPrice := params.MinGasPrice
 
 	// Short-circuit if min gas price is 0 or if simulating
 	if minGasPrice.IsZero() || simulate {
@@ -131,7 +135,11 @@ func (mpd MinGasPriceDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 // AnteHandle ensures that the that the effective fee from the transaction is greater than the
 // minimum global fee, which is defined by the  MinGasPrice (parameter) * GasLimit (tx argument).
 func (empd EthMinGasPriceDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
-	minGasPrice := empd.feesKeeper.GetParams(ctx).MinGasPrice
+	params, err := empd.feesKeeper.GetParams(ctx)
+	if err != nil {
+		return ctx, err
+	}
+	minGasPrice := params.MinGasPrice
 
 	// short-circuit if min gas price is 0
 	if minGasPrice.IsZero() {

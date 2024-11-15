@@ -48,7 +48,8 @@ func (s *AnteTestSuite) TestMinGasPriceDecorator() {
 		{
 			"valid cosmos tx with MinGasPrices = 0, gasPrice = 0",
 			func() sdk.Tx {
-				params := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				params, err := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				s.Require().NoError(err)
 				params.MinGasPrice = sdkmath.LegacyZeroDec()
 				s.app.FeeMarketKeeper.SetParams(s.ctx, params)
 
@@ -62,7 +63,8 @@ func (s *AnteTestSuite) TestMinGasPriceDecorator() {
 		{
 			"valid cosmos tx with MinGasPrices = 0, gasPrice > 0",
 			func() sdk.Tx {
-				params := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				params, err := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				s.Require().NoError(err)
 				params.MinGasPrice = sdkmath.LegacyZeroDec()
 				s.app.FeeMarketKeeper.SetParams(s.ctx, params)
 
@@ -76,7 +78,8 @@ func (s *AnteTestSuite) TestMinGasPriceDecorator() {
 		{
 			"valid cosmos tx with MinGasPrices = 10, gasPrice = 10",
 			func() sdk.Tx {
-				params := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				params, err := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				s.Require().NoError(err)
 				params.MinGasPrice = sdkmath.LegacyNewDec(10)
 				s.app.FeeMarketKeeper.SetParams(s.ctx, params)
 
@@ -90,7 +93,8 @@ func (s *AnteTestSuite) TestMinGasPriceDecorator() {
 		{
 			"invalid cosmos tx with MinGasPrices = 10, gasPrice = 0",
 			func() sdk.Tx {
-				params := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				params, err := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				s.Require().NoError(err)
 				params.MinGasPrice = sdkmath.LegacyNewDec(10)
 				s.app.FeeMarketKeeper.SetParams(s.ctx, params)
 
@@ -104,7 +108,8 @@ func (s *AnteTestSuite) TestMinGasPriceDecorator() {
 		{
 			"invalid cosmos tx with wrong denom",
 			func() sdk.Tx {
-				params := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				params, err := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				s.Require().NoError(err)
 				params.MinGasPrice = sdkmath.LegacyNewDec(10)
 				s.app.FeeMarketKeeper.SetParams(s.ctx, params)
 
@@ -151,7 +156,8 @@ func (s *AnteTestSuite) TestEthMinGasPriceDecorator() {
 		{
 			"invalid tx type",
 			func() sdk.Tx {
-				params := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				params, err := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				s.Require().NoError(err)
 				params.MinGasPrice = sdkmath.LegacyNewDec(10)
 				s.app.FeeMarketKeeper.SetParams(s.ctx, params)
 				return &invalidTx{}
@@ -162,7 +168,8 @@ func (s *AnteTestSuite) TestEthMinGasPriceDecorator() {
 		{
 			"wrong tx type",
 			func() sdk.Tx {
-				params := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				params, err := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				s.Require().NoError(err)
 				params.MinGasPrice = sdkmath.LegacyNewDec(10)
 				s.app.FeeMarketKeeper.SetParams(s.ctx, params)
 				testMsg := banktypes.MsgSend{
@@ -179,7 +186,8 @@ func (s *AnteTestSuite) TestEthMinGasPriceDecorator() {
 		{
 			"valid: invalid tx type with MinGasPrices = 0",
 			func() sdk.Tx {
-				params := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				params, err := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				s.Require().NoError(err)
 				params.MinGasPrice = sdkmath.LegacyZeroDec()
 				s.app.FeeMarketKeeper.SetParams(s.ctx, params)
 				return &invalidTx{}
@@ -190,7 +198,8 @@ func (s *AnteTestSuite) TestEthMinGasPriceDecorator() {
 		{
 			"valid legacy tx with MinGasPrices = 0, gasPrice = 0",
 			func() sdk.Tx {
-				params := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				params, err := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				s.Require().NoError(err)
 				params.MinGasPrice = sdkmath.LegacyZeroDec()
 				s.app.FeeMarketKeeper.SetParams(s.ctx, params)
 
@@ -203,7 +212,8 @@ func (s *AnteTestSuite) TestEthMinGasPriceDecorator() {
 		{
 			"valid legacy tx with MinGasPrices = 0, gasPrice > 0",
 			func() sdk.Tx {
-				params := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				params, err := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				s.Require().NoError(err)
 				params.MinGasPrice = sdkmath.LegacyZeroDec()
 				s.app.FeeMarketKeeper.SetParams(s.ctx, params)
 
@@ -216,7 +226,8 @@ func (s *AnteTestSuite) TestEthMinGasPriceDecorator() {
 		{
 			"valid legacy tx with MinGasPrices = 10, gasPrice = 10",
 			func() sdk.Tx {
-				params := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				params, err := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				s.Require().NoError(err)
 				params.MinGasPrice = sdkmath.LegacyNewDec(10)
 				s.app.FeeMarketKeeper.SetParams(s.ctx, params)
 
@@ -229,7 +240,8 @@ func (s *AnteTestSuite) TestEthMinGasPriceDecorator() {
 		{
 			"invalid legacy tx with MinGasPrices = 10, gasPrice = 0",
 			func() sdk.Tx {
-				params := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				params, err := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				s.Require().NoError(err)
 				params.MinGasPrice = sdkmath.LegacyNewDec(10)
 				s.app.FeeMarketKeeper.SetParams(s.ctx, params)
 
@@ -242,7 +254,8 @@ func (s *AnteTestSuite) TestEthMinGasPriceDecorator() {
 		{
 			"valid dynamic tx with MinGasPrices = 0, EffectivePrice = 0",
 			func() sdk.Tx {
-				params := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				params, err := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				s.Require().NoError(err)
 				params.MinGasPrice = sdkmath.LegacyZeroDec()
 				s.app.FeeMarketKeeper.SetParams(s.ctx, params)
 
@@ -255,7 +268,8 @@ func (s *AnteTestSuite) TestEthMinGasPriceDecorator() {
 		{
 			"valid dynamic tx with MinGasPrices = 0, EffectivePrice > 0",
 			func() sdk.Tx {
-				params := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				params, err := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				s.Require().NoError(err)
 				params.MinGasPrice = sdkmath.LegacyZeroDec()
 				s.app.FeeMarketKeeper.SetParams(s.ctx, params)
 
@@ -268,7 +282,8 @@ func (s *AnteTestSuite) TestEthMinGasPriceDecorator() {
 		{
 			"valid dynamic tx with MinGasPrices < EffectivePrice",
 			func() sdk.Tx {
-				params := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				params, err := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				s.Require().NoError(err)
 				params.MinGasPrice = sdkmath.LegacyNewDec(10)
 				s.app.FeeMarketKeeper.SetParams(s.ctx, params)
 
@@ -281,7 +296,8 @@ func (s *AnteTestSuite) TestEthMinGasPriceDecorator() {
 		{
 			"invalid dynamic tx with MinGasPrices > EffectivePrice",
 			func() sdk.Tx {
-				params := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				params, err := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				s.Require().NoError(err)
 				params.MinGasPrice = sdkmath.LegacyNewDec(10)
 				s.app.FeeMarketKeeper.SetParams(s.ctx, params)
 
@@ -294,11 +310,13 @@ func (s *AnteTestSuite) TestEthMinGasPriceDecorator() {
 		{
 			"invalid dynamic tx with MinGasPrices > BaseFee, MinGasPrices > EffectivePrice",
 			func() sdk.Tx {
-				params := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				params, err := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				s.Require().NoError(err)
 				params.MinGasPrice = sdkmath.LegacyNewDec(100)
 				s.app.FeeMarketKeeper.SetParams(s.ctx, params)
 
-				feemarketParams := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				feemarketParams, err := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				s.Require().NoError(err)
 				feemarketParams.BaseFee = sdkmath.NewInt(10)
 				s.app.FeeMarketKeeper.SetParams(s.ctx, feemarketParams)
 
@@ -311,11 +329,13 @@ func (s *AnteTestSuite) TestEthMinGasPriceDecorator() {
 		{
 			"valid dynamic tx with MinGasPrices > BaseFee, MinGasPrices < EffectivePrice (big GasTipCap)",
 			func() sdk.Tx {
-				params := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				params, err := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				s.Require().NoError(err)
 				params.MinGasPrice = sdkmath.LegacyNewDec(100)
 				s.app.FeeMarketKeeper.SetParams(s.ctx, params)
 
-				feemarketParams := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				feemarketParams, err := s.app.FeeMarketKeeper.GetParams(s.ctx)
+				s.Require().NoError(err)
 				feemarketParams.BaseFee = sdkmath.NewInt(10)
 				s.app.FeeMarketKeeper.SetParams(s.ctx, feemarketParams)
 

@@ -31,7 +31,11 @@ func (suite *KeeperTestSuite) TestCalculateBaseFee() {
 			0,
 			0,
 			sdkmath.LegacyZeroDec(),
-			func(baseFee sdkmath.Int) sdkmath.Int { return suite.app.FeeMarketKeeper.GetParams(suite.ctx).BaseFee },
+			func(baseFee sdkmath.Int) sdkmath.Int {
+				params, err := suite.app.FeeMarketKeeper.GetParams(suite.ctx)
+				suite.Require().NoError(err)
+				return params.BaseFee
+			},
 		},
 		{
 			"with BaseFee - parent block wanted the same gas as its target (ElasticityMultiplier = 2)",
@@ -39,7 +43,11 @@ func (suite *KeeperTestSuite) TestCalculateBaseFee() {
 			1,
 			50,
 			sdkmath.LegacyZeroDec(),
-			func(baseFee sdkmath.Int) sdkmath.Int { return suite.app.FeeMarketKeeper.GetParams(suite.ctx).BaseFee },
+			func(baseFee sdkmath.Int) sdkmath.Int {
+				params, err := suite.app.FeeMarketKeeper.GetParams(suite.ctx)
+				suite.Require().NoError(err)
+				return params.BaseFee
+			},
 		},
 		{
 			"with BaseFee - parent block wanted the same gas as its target, with higher min gas price (ElasticityMultiplier = 2)",
@@ -47,7 +55,11 @@ func (suite *KeeperTestSuite) TestCalculateBaseFee() {
 			1,
 			50,
 			sdkmath.LegacyNewDec(1500000000),
-			func(baseFee sdkmath.Int) sdkmath.Int { return suite.app.FeeMarketKeeper.GetParams(suite.ctx).BaseFee },
+			func(baseFee sdkmath.Int) sdkmath.Int {
+				params, err := suite.app.FeeMarketKeeper.GetParams(suite.ctx)
+				suite.Require().NoError(err)
+				return params.BaseFee
+			},
 		},
 		{
 			"with BaseFee - parent block wanted more gas than its target (ElasticityMultiplier = 2)",
@@ -86,7 +98,8 @@ func (suite *KeeperTestSuite) TestCalculateBaseFee() {
 		suite.Run(fmt.Sprintf("Case %s", tc.name), func() {
 			suite.SetupTest() // reset
 
-			params := suite.app.FeeMarketKeeper.GetParams(suite.ctx)
+			params, err := suite.app.FeeMarketKeeper.GetParams(suite.ctx)
+			suite.Require().NoError(err)
 			params.NoBaseFee = tc.NoBaseFee
 			params.MinGasPrice = tc.minGasPrice
 			suite.app.FeeMarketKeeper.SetParams(suite.ctx, params)

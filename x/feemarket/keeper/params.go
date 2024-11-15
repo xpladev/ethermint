@@ -26,18 +26,20 @@ import (
 )
 
 // GetParams returns the total set of fee market parameters.
-func (k Keeper) GetParams(ctx sdk.Context) (params types.Params) {
+func (k Keeper) GetParams(ctx sdk.Context) (params types.Params, err error) {
 	store := k.storeService.OpenKVStore(ctx)
-	// TODO error handling
-	bz, _ := store.Get(types.ParamsKey)
+	bz, err := store.Get(types.ParamsKey)
+	if err != nil {
+		return params, err
+	}
 	if len(bz) == 0 {
 		var p types.Params
 		k.ss.GetParamSetIfExists(ctx, &p)
-		return p
+		return p, err
 	}
 
 	k.cdc.MustUnmarshal(bz, &params)
-	return params
+	return params, err
 }
 
 // SetParams sets the fee market params in a single key
@@ -63,13 +65,19 @@ func (k Keeper) SetParams(ctx sdk.Context, params types.Params) error {
 
 // GetBaseFeeEnabled returns true if base fee is enabled
 func (k Keeper) GetBaseFeeEnabled(ctx sdk.Context) bool {
-	params := k.GetParams(ctx)
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		panic(err)
+	}
 	return !params.NoBaseFee && ctx.BlockHeight() >= params.EnableHeight
 }
 
 // GetBaseFee gets the base fee from the store
 func (k Keeper) GetBaseFee(ctx sdk.Context) *big.Int {
-	params := k.GetParams(ctx)
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		panic(err)
+	}
 	if params.NoBaseFee {
 		return nil
 	}
@@ -84,9 +92,12 @@ func (k Keeper) GetBaseFee(ctx sdk.Context) *big.Int {
 
 // SetBaseFee set's the base fee in the store
 func (k Keeper) SetBaseFee(ctx sdk.Context, baseFee *big.Int) {
-	params := k.GetParams(ctx)
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		panic(err)
+	}
 	params.BaseFee = sdkmath.NewIntFromBigInt(baseFee)
-	err := k.SetParams(ctx, params)
+	err = k.SetParams(ctx, params)
 	if err != nil {
 		return
 	}

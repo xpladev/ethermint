@@ -21,7 +21,9 @@ func (suite *KeeperTestSuite) TestSetGetParams() {
 				return types.DefaultParams()
 			},
 			func() interface{} {
-				return suite.app.FeeMarketKeeper.GetParams(suite.ctx)
+				params, err := suite.app.FeeMarketKeeper.GetParams(suite.ctx)
+				suite.Require().NoError(err)
+				return params
 			},
 			true,
 		},
@@ -33,7 +35,9 @@ func (suite *KeeperTestSuite) TestSetGetParams() {
 				return params.ElasticityMultiplier
 			},
 			func() interface{} {
-				return suite.app.FeeMarketKeeper.GetParams(suite.ctx).ElasticityMultiplier
+				params, err := suite.app.FeeMarketKeeper.GetParams(suite.ctx)
+				suite.Require().NoError(err)
+				return params.ElasticityMultiplier
 			},
 			true,
 		},

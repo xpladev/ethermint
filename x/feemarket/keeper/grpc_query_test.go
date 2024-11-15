@@ -16,7 +16,8 @@ func (suite *KeeperTestSuite) TestQueryParams() {
 		},
 	}
 	for _, tc := range testCases {
-		params := suite.app.FeeMarketKeeper.GetParams(suite.ctx)
+		params, err := suite.app.FeeMarketKeeper.GetParams(suite.ctx)
+		suite.Require().NoError(err)
 		exp := &types.QueryParamsResponse{Params: params}
 
 		res, err := suite.queryClient.Params(suite.ctx.Context(), &types.QueryParamsRequest{})
