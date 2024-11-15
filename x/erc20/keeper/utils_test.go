@@ -101,7 +101,8 @@ func (suite *KeeperTestSuite) DoSetupTest(t require.TestingT) {
 	stakingParams.BondDenom = testutil.BaseDenom
 	suite.app.StakingKeeper.SetParams(suite.ctx, stakingParams)
 
-	evmParams := suite.app.EvmKeeper.GetParams(suite.ctx)
+	evmParams, err := suite.app.EvmKeeper.GetParams(suite.ctx)
+	require.NoError(t, err)
 	evmParams.EvmDenom = testutil.BaseDenom
 	err = suite.app.EvmKeeper.SetParams(suite.ctx, evmParams)
 	require.NoError(t, err)
@@ -152,9 +153,10 @@ func (suite *KeeperTestSuite) SetupIBCTest() {
 	suite.coordinator.CommitNBlocks(suite.IBCCosmosChain, 2)
 
 	s.app = suite.EthermintChain.App.(*app.EthermintApp)
-	evmParams := s.app.EvmKeeper.GetParams(s.EthermintChain.GetContext())
+	evmParams, err := s.app.EvmKeeper.GetParams(s.EthermintChain.GetContext())
+	suite.Require().NoError(err)
 	evmParams.EvmDenom = testutil.BaseDenom
-	err := s.app.EvmKeeper.SetParams(s.EthermintChain.GetContext(), evmParams)
+	err = s.app.EvmKeeper.SetParams(s.EthermintChain.GetContext(), evmParams)
 	suite.Require().NoError(err)
 
 	// Set block proposer once, so its carried over on the ibc-go-testing suite
@@ -268,7 +270,8 @@ func (suite *KeeperTestSuite) sendTx(contractAddr, from common.Address, transfer
 	nonce := suite.app.EvmKeeper.GetNonce(suite.ctx, suite.address)
 
 	// Mint the max gas to the FeeCollector to ensure balance in case of refund
-	evmParams := suite.app.EvmKeeper.GetParams(suite.ctx)
+	evmParams, err := suite.app.EvmKeeper.GetParams(suite.ctx)
+	suite.Require().NoError(err)
 	suite.MintFeeCollector(sdk.NewCoins(sdk.NewCoin(evmParams.EvmDenom, sdkmath.NewInt(suite.app.FeeMarketKeeper.GetBaseFee(suite.ctx).Int64()*int64(res.Gas)))))
 	ercTransferTxParams := &evm.EvmTxArgs{
 		ChainID:   chainID,

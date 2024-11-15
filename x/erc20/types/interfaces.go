@@ -61,7 +61,7 @@ type StakingKeeper interface {
 
 // EVMKeeper defines the expected EVM keeper interface used on erc20
 type EVMKeeper interface {
-	GetParams(ctx sdk.Context) evmtypes.Params
+	GetParams(ctx sdk.Context) (evmtypes.Params, error)
 	GetAccountWithoutBalance(ctx sdk.Context, addr common.Address) *statedb.Account
 	EstimateGas(c context.Context, req *evmtypes.EthCallRequest) (*evmtypes.EstimateGasResponse, error)
 	ApplyMessage(ctx sdk.Context, msg core.Message, tracer vm.EVMLogger, commit bool) (*evmtypes.MsgEthereumTxResponse, error)

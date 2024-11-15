@@ -90,7 +90,10 @@ func (mpd MinGasPriceDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 	if minGasPrice.IsZero() || simulate {
 		return next(ctx, tx, simulate)
 	}
-	evmParams := mpd.evmKeeper.GetParams(ctx)
+	evmParams, err := mpd.evmKeeper.GetParams(ctx)
+	if err != nil {
+		return ctx, err
+	}
 	evmDenom := evmParams.GetEvmDenom()
 	minGasPrices := sdk.DecCoins{
 		{
@@ -135,7 +138,10 @@ func (empd EthMinGasPriceDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 		return next(ctx, tx, simulate)
 	}
 
-	evmParams := empd.evmKeeper.GetParams(ctx)
+	evmParams, err := empd.evmKeeper.GetParams(ctx)
+	if err != nil {
+		return ctx, err
+	}
 	chainCfg := evmParams.GetChainConfig()
 	ethCfg := chainCfg.EthereumConfig(empd.evmKeeper.ChainID())
 	baseFee := empd.evmKeeper.GetBaseFee(ctx, ethCfg)
@@ -194,7 +200,10 @@ func (mfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulat
 	if !ctx.IsCheckTx() || simulate {
 		return next(ctx, tx, simulate)
 	}
-	evmParams := mfd.evmKeeper.GetParams(ctx)
+	evmParams, err := mfd.evmKeeper.GetParams(ctx)
+	if err != nil {
+		return ctx, err
+	}
 	chainCfg := evmParams.GetChainConfig()
 	ethCfg := chainCfg.EthereumConfig(mfd.evmKeeper.ChainID())
 

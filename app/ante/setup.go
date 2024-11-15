@@ -155,7 +155,10 @@ func (vbd EthValidateBasicDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simu
 	txFee := sdk.Coins{}
 	txGasLimit := uint64(0)
 
-	evmParams := vbd.evmKeeper.GetParams(ctx)
+	evmParams, err := vbd.evmKeeper.GetParams(ctx)
+	if err != nil {
+		return ctx, err
+	}
 	chainCfg := evmParams.GetChainConfig()
 	chainID := vbd.evmKeeper.ChainID()
 	ethCfg := chainCfg.EthereumConfig(chainID)

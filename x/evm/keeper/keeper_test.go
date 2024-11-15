@@ -416,7 +416,8 @@ func (suite *KeeperTestSuite) TestBaseFee() {
 			suite.enableLondonHF = tc.enableLondonHF
 			suite.SetupTest()
 			suite.app.EvmKeeper.BeginBlock(suite.ctx)
-			params := suite.app.EvmKeeper.GetParams(suite.ctx)
+			params, err := suite.app.EvmKeeper.GetParams(suite.ctx)
+			suite.Require().NoError(err)
 			ethCfg := params.ChainConfig.EthereumConfig(suite.app.EvmKeeper.ChainID())
 			baseFee := suite.app.EvmKeeper.GetBaseFee(suite.ctx, ethCfg)
 			suite.Require().Equal(tc.expectBaseFee, baseFee)

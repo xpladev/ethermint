@@ -260,7 +260,9 @@ func prepareEthTx(priv *ethsecp256k1.PrivKey, msgEthereumTx *evmtypes.MsgEthereu
 	txData, err := evmtypes.UnpackTxData(msgEthereumTx.Data)
 	s.Require().NoError(err)
 
-	evmDenom := s.app.EvmKeeper.GetParams(s.ctx).EvmDenom
+	params, err := s.app.EvmKeeper.GetParams(s.ctx)
+	s.Require().NoError(err)
+	evmDenom := params.EvmDenom
 	fees := sdk.Coins{{Denom: evmDenom, Amount: sdkmath.NewIntFromBigInt(txData.Fee())}}
 	builder.SetFeeAmount(fees)
 	builder.SetGasLimit(msgEthereumTx.GetGas())

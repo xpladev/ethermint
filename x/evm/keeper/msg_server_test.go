@@ -64,7 +64,8 @@ func (suite *KeeperTestSuite) TestEthereumTx() {
 	for _, tc := range testCases {
 		suite.Run(tc.name, func() {
 			suite.SetupTest()
-			keeperParams := suite.app.EvmKeeper.GetParams(suite.ctx)
+			keeperParams, err := suite.app.EvmKeeper.GetParams(suite.ctx)
+			suite.Require().NoError(err)
 			chainCfg = keeperParams.ChainConfig.EthereumConfig(suite.app.EvmKeeper.ChainID())
 			signer = ethtypes.LatestSignerForChainID(suite.app.EvmKeeper.ChainID())
 			vmdb = suite.StateDB()

@@ -20,9 +20,9 @@ type MockEVMKeeper struct {
 	mock.Mock
 }
 
-func (m *MockEVMKeeper) GetParams(_ sdk.Context) evm.Params {
+func (m *MockEVMKeeper) GetParams(_ sdk.Context) (evm.Params, error) {
 	args := m.Called(mock.Anything)
-	return args.Get(0).(evm.Params)
+	return args.Get(0).(evm.Params), nil
 }
 
 func (m *MockEVMKeeper) GetAccountWithoutBalance(_ sdk.Context, _ common.Address) *statedb.Account {

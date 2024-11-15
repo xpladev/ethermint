@@ -109,8 +109,12 @@ func ExportGenesis(ctx sdk.Context, k *keeper.Keeper, ak types.AccountKeeper) *t
 		return false
 	})
 
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		panic(err)
+	}
 	return &types.GenesisState{
 		Accounts: ethGenAccounts,
-		Params:   k.GetParams(ctx),
+		Params:   params,
 	}
 }

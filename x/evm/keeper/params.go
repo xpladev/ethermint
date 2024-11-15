@@ -21,15 +21,17 @@ import (
 )
 
 // GetParams returns the total set of evm parameters.
-func (k Keeper) GetParams(ctx sdk.Context) (params types.Params) {
+func (k Keeper) GetParams(ctx sdk.Context) (params types.Params, err error) {
 	store := k.storeService.OpenKVStore(ctx)
-	// TODO error handling
-	bz, _ := store.Get(types.KeyPrefixParams)
+	bz, err := store.Get(types.KeyPrefixParams)
+	if err != nil {
+		return params, err
+	}
 	if len(bz) == 0 {
-		return k.GetLegacyParams(ctx)
+		return k.GetLegacyParams(ctx), err
 	}
 	k.cdc.MustUnmarshal(bz, &params)
-	return
+	return params, err
 }
 
 // SetParams sets the EVM params each in their individual key for better get performance

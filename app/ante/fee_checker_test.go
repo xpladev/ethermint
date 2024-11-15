@@ -31,8 +31,8 @@ func (m MockEVMKeeper) GetBaseFee(ctx sdk.Context, ethCfg *params.ChainConfig) *
 	return nil
 }
 
-func (m MockEVMKeeper) GetParams(ctx sdk.Context) evmtypes.Params {
-	return evmtypes.DefaultParams()
+func (m MockEVMKeeper) GetParams(ctx sdk.Context) (evmtypes.Params, error) {
+	return evmtypes.DefaultParams(), nil
 }
 
 func (m MockEVMKeeper) ChainID() *big.Int {

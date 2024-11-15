@@ -34,7 +34,7 @@ import (
 // DynamicFeeEVMKeeper is a subset of EVMKeeper interface that supports dynamic fee checker
 type DynamicFeeEVMKeeper interface {
 	ChainID() *big.Int
-	GetParams(ctx sdk.Context) evmtypes.Params
+	GetParams(ctx sdk.Context) (evmtypes.Params, error)
 	GetBaseFee(ctx sdk.Context, ethCfg *params.ChainConfig) *big.Int
 }
 
@@ -48,7 +48,7 @@ type EVMKeeper interface {
 	GetBalance(ctx sdk.Context, addr common.Address) *big.Int
 	ResetTransientGasUsed(ctx sdk.Context)
 	GetTxIndexTransient(ctx sdk.Context) uint64
-	GetParams(ctx sdk.Context) evmtypes.Params
+	GetParams(ctx sdk.Context) (evmtypes.Params, error)
 }
 
 type protoTxProvider interface {

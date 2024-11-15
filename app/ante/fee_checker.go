@@ -49,7 +49,10 @@ func NewDynamicFeeChecker(k DynamicFeeEVMKeeper) authante.TxFeeChecker {
 			return checkTxFeeWithValidatorMinGasPrices(ctx, feeTx)
 		}
 
-		params := k.GetParams(ctx)
+		params, err := k.GetParams(ctx)
+		if err != nil {
+			return nil, 0, err
+		}
 		denom := params.EvmDenom
 		ethCfg := params.ChainConfig.EthereumConfig(k.ChainID())
 

@@ -211,7 +211,8 @@ func (suite *KeeperTestSuite) TestCallEVMWithData() {
 			"fail deploy",
 			types.ModuleAddress,
 			func() ([]byte, *common.Address) {
-				params := suite.app.EvmKeeper.GetParams(suite.ctx)
+				params, err := suite.app.EvmKeeper.GetParams(suite.ctx)
+				suite.Require().NoError(err)
 				params.EnableCreate = false
 				_ = suite.app.EvmKeeper.SetParams(suite.ctx, params)
 				ctorArgs, _ := contracts.ERC20MinterBurnerDecimalsContract.ABI.Pack("", "test", "test", uint8(18))

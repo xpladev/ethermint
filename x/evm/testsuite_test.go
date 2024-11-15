@@ -237,7 +237,8 @@ func (suite *EvmTestSuite) TestERC20TransferReverted() {
 
 			before := k.GetBalance(suite.ctx, suite.from)
 
-			evmParams := suite.app.EvmKeeper.GetParams(suite.ctx)
+			evmParams, err := suite.app.EvmKeeper.GetParams(suite.ctx)
+			suite.Require().NoError(err)
 			ethCfg := evmParams.GetChainConfig().EthereumConfig(nil)
 			baseFee := suite.app.EvmKeeper.GetBaseFee(suite.ctx, ethCfg)
 

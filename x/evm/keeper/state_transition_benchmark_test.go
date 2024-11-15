@@ -241,7 +241,8 @@ func BenchmarkApplyMessage(b *testing.B) {
 	suite := KeeperTestSuite{enableLondonHF: true}
 	suite.SetupTestWithT(b)
 
-	params := suite.app.EvmKeeper.GetParams(suite.ctx)
+	params, err := suite.app.EvmKeeper.GetParams(suite.ctx)
+	require.NoError(b, err)
 	ethCfg := params.ChainConfig.EthereumConfig(suite.app.EvmKeeper.ChainID())
 	signer := ethtypes.LatestSignerForChainID(suite.app.EvmKeeper.ChainID())
 
@@ -276,7 +277,8 @@ func BenchmarkApplyMessageWithLegacyTx(b *testing.B) {
 	suite := KeeperTestSuite{enableLondonHF: true}
 	suite.SetupTestWithT(b)
 
-	params := suite.app.EvmKeeper.GetParams(suite.ctx)
+	params, err := suite.app.EvmKeeper.GetParams(suite.ctx)
+	require.NoError(b, err)
 	ethCfg := params.ChainConfig.EthereumConfig(suite.app.EvmKeeper.ChainID())
 	signer := ethtypes.LatestSignerForChainID(suite.app.EvmKeeper.ChainID())
 
@@ -311,7 +313,8 @@ func BenchmarkApplyMessageWithDynamicFeeTx(b *testing.B) {
 	suite := KeeperTestSuite{enableFeemarket: true, enableLondonHF: true}
 	suite.SetupTestWithT(b)
 
-	params := suite.app.EvmKeeper.GetParams(suite.ctx)
+	params, err := suite.app.EvmKeeper.GetParams(suite.ctx)
+	require.NoError(b, err)
 	ethCfg := params.ChainConfig.EthereumConfig(suite.app.EvmKeeper.ChainID())
 	signer := ethtypes.LatestSignerForChainID(suite.app.EvmKeeper.ChainID())
 

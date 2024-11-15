@@ -256,7 +256,8 @@ func (suite *KeeperTestSuite) TestGetEthIntrinsicGas() {
 		suite.Run(fmt.Sprintf("Case %s", tc.name), func() {
 			suite.SetupTest() // reset
 
-			params := suite.app.EvmKeeper.GetParams(suite.ctx)
+			params, err := suite.app.EvmKeeper.GetParams(suite.ctx)
+			suite.Require().NoError(err)
 			ethCfg := params.ChainConfig.EthereumConfig(suite.app.EvmKeeper.ChainID())
 			ethCfg.HomesteadBlock = big.NewInt(2)
 			ethCfg.IstanbulBlock = big.NewInt(3)
@@ -351,8 +352,7 @@ func (suite *KeeperTestSuite) TestGasToRefund() {
 
 func (suite *KeeperTestSuite) TestRefundGas() {
 	var (
-		m   core.Message
-		err error
+		m core.Message
 	)
 
 	testCases := []struct {
@@ -398,7 +398,8 @@ func (suite *KeeperTestSuite) TestRefundGas() {
 			noError:        false,
 			expGasRefund:   params.TxGas,
 			malleate: func() {
-				keeperParams := suite.app.EvmKeeper.GetParams(suite.ctx)
+				keeperParams, err := suite.app.EvmKeeper.GetParams(suite.ctx)
+				suite.Require().NoError(err)
 				m, err = suite.createContractGethMsg(
 					suite.StateDB().GetNonce(suite.address),
 					ethtypes.LatestSignerForChainID(suite.app.EvmKeeper.ChainID()),
@@ -415,7 +416,8 @@ func (suite *KeeperTestSuite) TestRefundGas() {
 			suite.mintFeeCollector = true
 			suite.SetupTest() // reset
 
-			keeperParams := suite.app.EvmKeeper.GetParams(suite.ctx)
+			keeperParams, err := suite.app.EvmKeeper.GetParams(suite.ctx)
+			suite.Require().NoError(err)
 			ethCfg := keeperParams.ChainConfig.EthereumConfig(suite.app.EvmKeeper.ChainID())
 			signer := ethtypes.LatestSignerForChainID(suite.app.EvmKeeper.ChainID())
 			vmdb := suite.StateDB()
@@ -542,7 +544,8 @@ func (suite *KeeperTestSuite) TestApplyMessage() {
 	config, err := suite.app.EvmKeeper.EVMConfig(suite.ctx, proposerAddress, big.NewInt(9000))
 	suite.Require().NoError(err)
 
-	keeperParams := suite.app.EvmKeeper.GetParams(suite.ctx)
+	keeperParams, err := suite.app.EvmKeeper.GetParams(suite.ctx)
+	suite.Require().NoError(err)
 	chainCfg := keeperParams.ChainConfig.EthereumConfig(suite.app.EvmKeeper.ChainID())
 	signer := ethtypes.LatestSignerForChainID(suite.app.EvmKeeper.ChainID())
 	tracer := suite.app.EvmKeeper.Tracer(suite.ctx, msg, config.ChainConfig)
@@ -643,7 +646,8 @@ func (suite *KeeperTestSuite) TestApplyMessageWithConfig() {
 			config, err = suite.app.EvmKeeper.EVMConfig(suite.ctx, proposerAddress, big.NewInt(9000))
 			suite.Require().NoError(err)
 
-			keeperParams = suite.app.EvmKeeper.GetParams(suite.ctx)
+			keeperParams, err = suite.app.EvmKeeper.GetParams(suite.ctx)
+			suite.Require().NoError(err)
 			chainCfg = keeperParams.ChainConfig.EthereumConfig(suite.app.EvmKeeper.ChainID())
 			signer = ethtypes.LatestSignerForChainID(suite.app.EvmKeeper.ChainID())
 			vmdb = suite.StateDB()

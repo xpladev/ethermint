@@ -673,7 +673,8 @@ func (suite *KeeperTestSuite) TestEstimateGas() {
 					From: &suite.address,
 					Data: (*hexutil.Bytes)(&data),
 				}
-				params := suite.app.EvmKeeper.GetParams(suite.ctx)
+				params, err := suite.app.EvmKeeper.GetParams(suite.ctx)
+				suite.Require().NoError(err)
 				params.EnableCreate = false
 				suite.app.EvmKeeper.SetParams(suite.ctx, params)
 			},
@@ -907,7 +908,8 @@ func (suite *KeeperTestSuite) TestTraceTx() {
 				predecessors = append(predecessors, contractTx)
 				suite.Commit()
 
-				params := suite.app.EvmKeeper.GetParams(suite.ctx)
+				params, err := suite.app.EvmKeeper.GetParams(suite.ctx)
+				suite.Require().NoError(err)
 				params.EnableCreate = false
 				suite.app.EvmKeeper.SetParams(suite.ctx, params)
 			},
@@ -1304,7 +1306,8 @@ func (suite *KeeperTestSuite) TestEthCall() {
 				suite.Require().NoError(err)
 				req = &types.EthCallRequest{Args: args, GasCap: uint64(config.DefaultGasCap)}
 
-				params := suite.app.EvmKeeper.GetParams(suite.ctx)
+				params, err := suite.app.EvmKeeper.GetParams(suite.ctx)
+				suite.Require().NoError(err)
 				params.EnableCreate = false
 				suite.app.EvmKeeper.SetParams(suite.ctx, params)
 			},
