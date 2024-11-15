@@ -82,15 +82,18 @@ func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 func (k Keeper) SetBlockGasWanted(ctx sdk.Context, gas uint64) {
 	store := k.storeService.OpenKVStore(ctx)
 	gasBz := sdk.Uint64ToBigEndian(gas)
-	// TODO error handling
-	_ = store.Set(types.KeyPrefixBlockGasWanted, gasBz)
+	if err := store.Set(types.KeyPrefixBlockGasWanted, gasBz); err != nil {
+		panic(err)
+	}
 }
 
 // GetBlockGasWanted returns the last block gas wanted value from the store.
 func (k Keeper) GetBlockGasWanted(ctx sdk.Context) uint64 {
 	store := k.storeService.OpenKVStore(ctx)
-	// TODO error handling
-	bz, _ := store.Get(types.KeyPrefixBlockGasWanted)
+	bz, err := store.Get(types.KeyPrefixBlockGasWanted)
+	if err != nil {
+		panic(err)
+	}
 	if len(bz) == 0 {
 		return 0
 	}
@@ -127,8 +130,10 @@ func (k Keeper) AddTransientGasWanted(ctx sdk.Context, gasWanted uint64) (uint64
 // TODO: Figure out if this will be deleted ?
 func (k Keeper) GetBaseFeeV1(ctx sdk.Context) *big.Int {
 	store := k.storeService.OpenKVStore(ctx)
-	// TODO error handling
-	bz, _ := store.Get(KeyPrefixBaseFeeV1)
+	bz, err := store.Get(KeyPrefixBaseFeeV1)
+	if err != nil {
+		panic(err)
+	}
 	if len(bz) == 0 {
 		return nil
 	}
