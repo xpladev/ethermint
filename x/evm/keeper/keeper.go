@@ -329,7 +329,8 @@ func (k *Keeper) GetBalance(ctx sdk.Context, addr common.Address) *big.Int {
 	}
 	evmParams, err := k.GetParams(ctx)
 	if err != nil {
-		panic(err)
+		// if cannot get params, return invalid value
+		return big.NewInt(-1)
 	}
 	evmDenom := evmParams.GetEvmDenom()
 	// if node is pruned, params is empty. Return invalid value
