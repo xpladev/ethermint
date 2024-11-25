@@ -420,7 +420,10 @@ func (k *Keeper) ApplyMessageWithConfig(ctx sdk.Context,
 	// is considerably higher than GasUsed to stay more aligned with Tendermint gas mechanics
 	// for more info https://github.com/evmos/ethermint/issues/1085
 	gasLimit := sdkmath.LegacyNewDec(int64(msg.Gas()))
-	minGasMultiplier := k.GetMinGasMultiplier(ctx)
+	minGasMultiplier, err := k.GetMinGasMultiplier(ctx)
+	if err != nil {
+		return nil, errorsmod.Wrap(err, "failed to get MinGasMultiplier")
+	}
 	minimumGasUsed := gasLimit.Mul(minGasMultiplier)
 
 	if msg.Gas() < leftoverGas {

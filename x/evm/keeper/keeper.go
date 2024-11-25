@@ -362,16 +362,17 @@ func (k Keeper) getBaseFee(ctx sdk.Context, london bool) *big.Int {
 }
 
 // GetMinGasMultiplier returns the MinGasMultiplier param from the fee market module
-func (k Keeper) GetMinGasMultiplier(ctx sdk.Context) sdkmath.LegacyDec {
+func (k Keeper) GetMinGasMultiplier(ctx sdk.Context) (sdkmath.LegacyDec, error) {
 	fmkParmas, err := k.feeMarketKeeper.GetParams(ctx)
 	if err != nil {
-		panic(err)
+		// OneDec do not affect multiplier
+		return sdkmath.LegacyOneDec(), err
 	}
 	if fmkParmas.MinGasMultiplier.IsNil() {
 		// in case we are executing eth_call on a legacy block, returns a zero value.
-		return sdkmath.LegacyZeroDec()
+		return sdkmath.LegacyZeroDec(), nil
 	}
-	return fmkParmas.MinGasMultiplier
+	return fmkParmas.MinGasMultiplier, nil
 }
 
 // ResetTransientGasUsed reset gas used to prepare for execution of current cosmos tx, called in ante handler.
