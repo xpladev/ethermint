@@ -28,15 +28,15 @@ import (
 // block during BeginBlock. If the NoBaseFee parameter is enabled or below activation height, this function returns nil.
 // NOTE: This code is inspired from the go-ethereum EIP1559 implementation and adapted to Cosmos SDK-based
 // chains. For the canonical code refer to: https://github.com/ethereum/go-ethereum/blob/master/consensus/misc/eip1559.go
-func (k Keeper) CalculateBaseFee(ctx sdk.Context) *big.Int {
+func (k Keeper) CalculateBaseFee(ctx sdk.Context) (*big.Int, error) {
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	// Ignore the calculation if not enabled
 	if !params.IsBaseFeeEnabled(ctx.BlockHeight()) {
-		return nil
+		return nil, nil
 	}
 
 	consParams := ctx.ConsensusParams()
@@ -45,7 +45,7 @@ func (k Keeper) CalculateBaseFee(ctx sdk.Context) *big.Int {
 	// defined in the parameters (DefaultBaseFee if it hasn't been changed by
 	// governance).
 	if ctx.BlockHeight() == params.EnableHeight {
-		return params.BaseFee.BigInt()
+		return params.BaseFee.BigInt(), nil
 	}
 
 	// get the block gas used and the base fee values for the parent block.
@@ -54,7 +54,7 @@ func (k Keeper) CalculateBaseFee(ctx sdk.Context) *big.Int {
 	// persistent KVStore after EndBlock (ABCI Commit).
 	parentBaseFee := params.BaseFee.BigInt()
 	if parentBaseFee == nil {
-		return nil
+		return nil, nil
 	}
 
 	parentGasUsed := k.GetBlockGasWanted(ctx)
@@ -70,7 +70,7 @@ func (k Keeper) CalculateBaseFee(ctx sdk.Context) *big.Int {
 	// validation
 	parentGasTargetBig := new(big.Int).Div(gasLimit, new(big.Int).SetUint64(uint64(params.ElasticityMultiplier)))
 	if !parentGasTargetBig.IsUint64() {
-		return nil
+		return nil, nil
 	}
 
 	parentGasTarget := parentGasTargetBig.Uint64()
@@ -79,7 +79,7 @@ func (k Keeper) CalculateBaseFee(ctx sdk.Context) *big.Int {
 	// If the parent gasUsed is the same as the target, the baseFee remains
 	// unchanged.
 	if parentGasUsed == parentGasTarget {
-		return new(big.Int).Set(parentBaseFee)
+		return new(big.Int).Set(parentBaseFee), nil
 	}
 
 	if parentGasUsed > parentGasTarget {
@@ -93,7 +93,7 @@ func (k Keeper) CalculateBaseFee(ctx sdk.Context) *big.Int {
 			common.Big1,
 		)
 
-		return x.Add(parentBaseFee, baseFeeDelta)
+		return x.Add(parentBaseFee, baseFeeDelta), nil
 	}
 
 	// Otherwise if the parent block used less gas than its target, the baseFee
@@ -106,5 +106,5 @@ func (k Keeper) CalculateBaseFee(ctx sdk.Context) *big.Int {
 	// Set global min gas price as lower bound of the base fee, transactions below
 	// the min gas price don't even reach the mempool.
 	minGasPrice := params.MinGasPrice.TruncateInt().BigInt()
-	return math.BigMax(x.Sub(parentBaseFee, baseFeeDelta), minGasPrice)
+	return math.BigMax(x.Sub(parentBaseFee, baseFeeDelta), minGasPrice), nil
 }

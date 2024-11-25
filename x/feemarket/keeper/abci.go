@@ -29,7 +29,11 @@ import (
 
 // BeginBlock updates base fee
 func (k *Keeper) BeginBlock(ctx sdk.Context) error {
-	baseFee := k.CalculateBaseFee(ctx)
+	baseFee, err := k.CalculateBaseFee(ctx)
+	if err != nil {
+		k.Logger(ctx).Error(err.Error())
+		return err
+	}
 
 	// return immediately if base fee is nil
 	if baseFee == nil {
