@@ -44,7 +44,10 @@ func (k Keeper) BaseFee(c context.Context, _ *types.QueryBaseFeeRequest) (*types
 	ctx := sdk.UnwrapSDKContext(c)
 
 	res := &types.QueryBaseFeeResponse{}
-	baseFee := k.GetBaseFee(ctx)
+	baseFee, err := k.GetBaseFee(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	if baseFee != nil {
 		aux := sdkmath.NewIntFromBigInt(baseFee)
@@ -57,7 +60,10 @@ func (k Keeper) BaseFee(c context.Context, _ *types.QueryBaseFeeRequest) (*types
 // BlockGas implements the Query/BlockGas gRPC method
 func (k Keeper) BlockGas(c context.Context, _ *types.QueryBlockGasRequest) (*types.QueryBlockGasResponse, error) {
 	ctx := sdk.UnwrapSDKContext(c)
-	gas := k.GetBlockGasWanted(ctx)
+	gas, err := k.GetBlockGasWanted(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	return &types.QueryBlockGasResponse{
 		Gas: int64(gas),

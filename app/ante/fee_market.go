@@ -44,7 +44,7 @@ func NewGasWantedDecorator(
 func (gwd GasWantedDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
 	evmParams, err := gwd.evmKeeper.GetParams(ctx)
 	if err != nil {
-		return ctx, err
+		return ctx, errorsmod.Wrap(err, "failed to get params")
 	}
 	chainCfg := evmParams.GetChainConfig()
 	ethCfg := chainCfg.EthereumConfig(gwd.evmKeeper.ChainID())
@@ -58,7 +58,10 @@ func (gwd GasWantedDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bo
 	}
 
 	gasWanted := feeTx.GetGas()
-	isBaseFeeEnabled := gwd.feeMarketKeeper.GetBaseFeeEnabled(ctx)
+	isBaseFeeEnabled, err := gwd.feeMarketKeeper.GetBaseFeeEnabled(ctx)
+	if err != nil {
+		return ctx, errorsmod.Wrap(err, "failed to get basefee enabled")
+	}
 
 	// Add total gasWanted to cumulative in block transientStore in FeeMarket module
 	if isBaseFeeEnabled {

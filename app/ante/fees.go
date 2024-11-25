@@ -148,11 +148,14 @@ func (empd EthMinGasPriceDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 
 	evmParams, err := empd.evmKeeper.GetParams(ctx)
 	if err != nil {
-		return ctx, err
+		return ctx, errorsmod.Wrap(err, "failed to get params")
 	}
 	chainCfg := evmParams.GetChainConfig()
 	ethCfg := chainCfg.EthereumConfig(empd.evmKeeper.ChainID())
-	baseFee := empd.evmKeeper.GetBaseFee(ctx, ethCfg)
+	baseFee, err := empd.evmKeeper.GetBaseFee(ctx, ethCfg)
+	if err != nil {
+		return ctx, errorsmod.Wrap(err, "failed to get base fee")
+	}
 
 	for _, msg := range tx.GetMsgs() {
 		ethMsg, ok := msg.(*evmtypes.MsgEthereumTx)
@@ -210,12 +213,15 @@ func (mfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulat
 	}
 	evmParams, err := mfd.evmKeeper.GetParams(ctx)
 	if err != nil {
-		return ctx, err
+		return ctx, errorsmod.Wrap(err, "failed to get params")
 	}
 	chainCfg := evmParams.GetChainConfig()
 	ethCfg := chainCfg.EthereumConfig(mfd.evmKeeper.ChainID())
 
-	baseFee := mfd.evmKeeper.GetBaseFee(ctx, ethCfg)
+	baseFee, err := mfd.evmKeeper.GetBaseFee(ctx, ethCfg)
+	if err != nil {
+		return ctx, errorsmod.Wrap(err, "failed to get base fee")
+	}
 	// skip check as the London hard fork and EIP-1559 are enabled
 	if baseFee != nil {
 		return next(ctx, tx, simulate)

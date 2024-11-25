@@ -41,7 +41,8 @@ func (suite *KeeperTestSuite) TestEndBlock() {
 			tc.malleate()
 
 			suite.app.FeeMarketKeeper.EndBlock(suite.ctx)
-			gasWanted := suite.app.FeeMarketKeeper.GetBlockGasWanted(suite.ctx)
+			gasWanted, err := suite.app.FeeMarketKeeper.GetBlockGasWanted(suite.ctx)
+			suite.Require().NoError(err)
 			suite.Require().Equal(tc.expGasWanted, gasWanted, tc.name)
 		})
 	}

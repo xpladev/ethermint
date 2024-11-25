@@ -60,7 +60,7 @@ type StakingKeeper interface {
 
 // FeeMarketKeeper
 type FeeMarketKeeper interface {
-	GetBaseFee(ctx sdk.Context) *big.Int
+	GetBaseFee(ctx sdk.Context) (*big.Int, error)
 	GetParams(ctx sdk.Context) (feemarkettypes.Params, error)
 }
 

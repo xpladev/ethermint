@@ -262,12 +262,14 @@ func (suite *KeeperTestSuite) DeployTestContract(t require.TestingT, owner commo
 	require.NoError(t, err)
 
 	var erc20DeployTx *evmtypes.MsgEthereumTx
+	baseFee, err := suite.app.FeeMarketKeeper.GetBaseFee(suite.ctx)
+	require.NoError(t, err)
 	if suite.enableFeemarket {
 		ethTxParams := &evmtypes.EvmTxArgs{
 			ChainID:   chainID,
 			Nonce:     nonce,
 			GasLimit:  res.Gas,
-			GasFeeCap: suite.app.FeeMarketKeeper.GetBaseFee(suite.ctx),
+			GasFeeCap: baseFee,
 			GasTipCap: big.NewInt(1),
 			Input:     data,
 			Accesses:  &ethtypes.AccessList{},
@@ -310,13 +312,15 @@ func (suite *KeeperTestSuite) TransferERC20Token(t require.TestingT, contractAdd
 	nonce := suite.app.EvmKeeper.GetNonce(suite.ctx, suite.address)
 
 	var ercTransferTx *evmtypes.MsgEthereumTx
+	baseFee, err := suite.app.FeeMarketKeeper.GetBaseFee(suite.ctx)
+	require.NoError(t, err)
 	if suite.enableFeemarket {
 		ethTxParams := &evmtypes.EvmTxArgs{
 			ChainID:   chainID,
 			Nonce:     nonce,
 			To:        &contractAddr,
 			GasLimit:  res.Gas,
-			GasFeeCap: suite.app.FeeMarketKeeper.GetBaseFee(suite.ctx),
+			GasFeeCap: baseFee,
 			GasTipCap: big.NewInt(1),
 			Input:     transferData,
 			Accesses:  &ethtypes.AccessList{},
@@ -364,13 +368,15 @@ func (suite *KeeperTestSuite) DeployTestMessageCall(t require.TestingT) common.A
 	nonce := suite.app.EvmKeeper.GetNonce(suite.ctx, suite.address)
 
 	var erc20DeployTx *evmtypes.MsgEthereumTx
+	baseFee, err := suite.app.FeeMarketKeeper.GetBaseFee(suite.ctx)
+	require.NoError(t, err)
 	if suite.enableFeemarket {
 		ethTxParams := &evmtypes.EvmTxArgs{
 			ChainID:   chainID,
 			Nonce:     nonce,
 			GasLimit:  res.Gas,
 			Input:     data,
-			GasFeeCap: suite.app.FeeMarketKeeper.GetBaseFee(suite.ctx),
+			GasFeeCap: baseFee,
 			Accesses:  &ethtypes.AccessList{},
 			GasTipCap: big.NewInt(1),
 		}
@@ -416,7 +422,8 @@ func (suite *KeeperTestSuite) TestBaseFee() {
 			params, err := suite.app.EvmKeeper.GetParams(suite.ctx)
 			suite.Require().NoError(err)
 			ethCfg := params.ChainConfig.EthereumConfig(suite.app.EvmKeeper.ChainID())
-			baseFee := suite.app.EvmKeeper.GetBaseFee(suite.ctx, ethCfg)
+			baseFee, err := suite.app.EvmKeeper.GetBaseFee(suite.ctx, ethCfg)
+			suite.Require().NoError(err)
 			suite.Require().Equal(tc.expectBaseFee, baseFee)
 		})
 	}

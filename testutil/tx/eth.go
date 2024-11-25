@@ -116,13 +116,17 @@ func CreateEthTx(
 
 	// When we send multiple Ethereum Tx's in one Cosmos Tx, we need to increment the nonce for each one.
 	nonce := appEthermint.EvmKeeper.GetNonce(ctx, fromAddr) + uint64(nonceIncrement)
+	baseFee, err := appEthermint.FeeMarketKeeper.GetBaseFee(ctx)
+	if err != nil {
+		return nil, err
+	}
 	evmTxParams := &evmtypes.EvmTxArgs{
 		ChainID:   chainID,
 		Nonce:     nonce,
 		To:        &toAddr,
 		Amount:    amount,
 		GasLimit:  100000,
-		GasFeeCap: appEthermint.FeeMarketKeeper.GetBaseFee(ctx),
+		GasFeeCap: baseFee,
 		GasTipCap: big.NewInt(1),
 		Accesses:  &ethtypes.AccessList{},
 	}

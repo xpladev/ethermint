@@ -64,41 +64,46 @@ func (k Keeper) SetParams(ctx sdk.Context, params types.Params) error {
 // ----------------------------------------------------------------------------
 
 // GetBaseFeeEnabled returns true if base fee is enabled
-func (k Keeper) GetBaseFeeEnabled(ctx sdk.Context) bool {
+func (k Keeper) GetBaseFeeEnabled(ctx sdk.Context) (bool, error) {
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		panic(err)
+		return false, err
 	}
-	return !params.NoBaseFee && ctx.BlockHeight() >= params.EnableHeight
+	return !params.NoBaseFee && ctx.BlockHeight() >= params.EnableHeight, nil
 }
 
 // GetBaseFee gets the base fee from the store
-func (k Keeper) GetBaseFee(ctx sdk.Context) *big.Int {
+func (k Keeper) GetBaseFee(ctx sdk.Context) (*big.Int, error) {
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	if params.NoBaseFee {
-		return nil
+		return nil, nil
 	}
 
 	baseFee := params.BaseFee.BigInt()
 	if baseFee == nil || baseFee.Sign() == 0 {
 		// try v1 format
-		return k.GetBaseFeeV1(ctx)
+		baseFeeV1, err := k.GetBaseFeeV1(ctx)
+		if err != nil {
+			return nil, err
+		}
+		return baseFeeV1, nil
 	}
-	return baseFee
+	return baseFee, nil
 }
 
 // SetBaseFee set's the base fee in the store
-func (k Keeper) SetBaseFee(ctx sdk.Context, baseFee *big.Int) {
+func (k Keeper) SetBaseFee(ctx sdk.Context, baseFee *big.Int) error {
 	params, err := k.GetParams(ctx)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	params.BaseFee = sdkmath.NewIntFromBigInt(baseFee)
 	err = k.SetParams(ctx, params)
 	if err != nil {
-		return
+		return err
 	}
+	return nil
 }

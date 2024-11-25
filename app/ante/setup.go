@@ -157,12 +157,15 @@ func (vbd EthValidateBasicDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simu
 
 	evmParams, err := vbd.evmKeeper.GetParams(ctx)
 	if err != nil {
-		return ctx, err
+		return ctx, errorsmod.Wrap(err, "failed to get params")
 	}
 	chainCfg := evmParams.GetChainConfig()
 	chainID := vbd.evmKeeper.ChainID()
 	ethCfg := chainCfg.EthereumConfig(chainID)
-	baseFee := vbd.evmKeeper.GetBaseFee(ctx, ethCfg)
+	baseFee, err := vbd.evmKeeper.GetBaseFee(ctx, ethCfg)
+	if err != nil {
+		return ctx, errorsmod.Wrap(err, "failed to get base fee")
+	}
 	enableCreate := evmParams.GetEnableCreate()
 	enableCall := evmParams.GetEnableCall()
 	evmDenom := evmParams.GetEvmDenom()

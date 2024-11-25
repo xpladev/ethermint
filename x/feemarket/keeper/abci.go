@@ -40,7 +40,11 @@ func (k *Keeper) BeginBlock(ctx sdk.Context) error {
 		return nil
 	}
 
-	k.SetBaseFee(ctx, baseFee)
+	err = k.SetBaseFee(ctx, baseFee)
+	if err != nil {
+		k.Logger(ctx).Error(err.Error())
+		return err
+	}
 
 	defer func() {
 		telemetry.SetGauge(float32(baseFee.Int64()), "feemarket", "base_fee")
@@ -81,7 +85,11 @@ func (k *Keeper) EndBlock(ctx sdk.Context) error {
 	minGasMultiplier := params.MinGasMultiplier
 	limitedGasWanted := sdkmath.LegacyNewDec(int64(gasWanted)).Mul(minGasMultiplier)
 	gasWanted = sdkmath.LegacyMaxDec(limitedGasWanted, sdkmath.LegacyNewDec(int64(gasUsed))).TruncateInt().Uint64()
-	k.SetBlockGasWanted(ctx, gasWanted)
+	err = k.SetBlockGasWanted(ctx, gasWanted)
+	if err != nil {
+		k.Logger(ctx).Error(err.Error())
+		return err
+	}
 
 	defer func() {
 		telemetry.SetGauge(float32(gasWanted), "feemarket", "block_gas")

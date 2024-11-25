@@ -72,7 +72,8 @@ func (suite *AnteTestSuite) TestAnteHandler() {
 
 		suite.app.EvmKeeper.SetBalance(suite.ctx, addr, big.NewInt(10000000000))
 
-		suite.app.FeeMarketKeeper.SetBaseFee(suite.ctx, big.NewInt(100))
+		err := suite.app.FeeMarketKeeper.SetBaseFee(suite.ctx, big.NewInt(100))
+		suite.Require().NoError(err)
 	}
 
 	ethContractCreationTxParams := &evmtypes.EvmTxArgs{

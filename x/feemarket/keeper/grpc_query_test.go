@@ -44,7 +44,9 @@ func (suite *KeeperTestSuite) TestQueryBaseFee() {
 		{
 			"pass - default Base Fee",
 			func() {
-				initialBaseFee := sdkmath.NewIntFromBigInt(suite.app.FeeMarketKeeper.GetBaseFee(suite.ctx))
+				baseFee, err := suite.app.FeeMarketKeeper.GetBaseFee(suite.ctx)
+				suite.Require().NoError(err)
+				initialBaseFee := sdkmath.NewIntFromBigInt(baseFee)
 				expRes = &types.QueryBaseFeeResponse{BaseFee: &initialBaseFee}
 			},
 			true,
@@ -53,7 +55,8 @@ func (suite *KeeperTestSuite) TestQueryBaseFee() {
 			"pass - non-nil Base Fee",
 			func() {
 				baseFee := sdkmath.OneInt().BigInt()
-				suite.app.FeeMarketKeeper.SetBaseFee(suite.ctx, baseFee)
+				err := suite.app.FeeMarketKeeper.SetBaseFee(suite.ctx, baseFee)
+				suite.Require().NoError(err)
 
 				aux = sdkmath.NewIntFromBigInt(baseFee)
 				expRes = &types.QueryBaseFeeResponse{BaseFee: &aux}
@@ -86,7 +89,8 @@ func (suite *KeeperTestSuite) TestQueryBlockGas() {
 		},
 	}
 	for _, tc := range testCases {
-		gas := suite.app.FeeMarketKeeper.GetBlockGasWanted(suite.ctx)
+		gas, err := suite.app.FeeMarketKeeper.GetBlockGasWanted(suite.ctx)
+		suite.Require().NoError(err)
 		exp := &types.QueryBlockGasResponse{Gas: int64(gas)}
 
 		res, err := suite.queryClient.BlockGas(suite.ctx.Context(), &types.QueryBlockGasRequest{})

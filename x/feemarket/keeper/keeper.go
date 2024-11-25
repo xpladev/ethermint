@@ -79,26 +79,27 @@ func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 
 // SetBlockGasWanted sets the block gas wanted to the store.
 // CONTRACT: this should be only called during EndBlock.
-func (k Keeper) SetBlockGasWanted(ctx sdk.Context, gas uint64) {
+func (k Keeper) SetBlockGasWanted(ctx sdk.Context, gas uint64) error {
 	store := k.storeService.OpenKVStore(ctx)
 	gasBz := sdk.Uint64ToBigEndian(gas)
 	if err := store.Set(types.KeyPrefixBlockGasWanted, gasBz); err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }
 
 // GetBlockGasWanted returns the last block gas wanted value from the store.
-func (k Keeper) GetBlockGasWanted(ctx sdk.Context) uint64 {
+func (k Keeper) GetBlockGasWanted(ctx sdk.Context) (uint64, error) {
 	store := k.storeService.OpenKVStore(ctx)
 	bz, err := store.Get(types.KeyPrefixBlockGasWanted)
 	if err != nil {
-		panic(err)
+		return 0, err
 	}
 	if len(bz) == 0 {
-		return 0
+		return 0, nil
 	}
 
-	return sdk.BigEndianToUint64(bz)
+	return sdk.BigEndianToUint64(bz), nil
 }
 
 // GetTransientGasWanted returns the gas wanted in the current block from transient store.
@@ -128,14 +129,14 @@ func (k Keeper) AddTransientGasWanted(ctx sdk.Context, gasWanted uint64) (uint64
 // GetBaseFeeV1 get the base fee from v1 version of states.
 // return nil if base fee is not enabled
 // TODO: Figure out if this will be deleted ?
-func (k Keeper) GetBaseFeeV1(ctx sdk.Context) *big.Int {
+func (k Keeper) GetBaseFeeV1(ctx sdk.Context) (*big.Int, error) {
 	store := k.storeService.OpenKVStore(ctx)
 	bz, err := store.Get(KeyPrefixBaseFeeV1)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	if len(bz) == 0 {
-		return nil
+		return nil, nil
 	}
-	return new(big.Int).SetBytes(bz)
+	return new(big.Int).SetBytes(bz), nil
 }

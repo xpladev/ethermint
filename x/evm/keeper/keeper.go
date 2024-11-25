@@ -345,20 +345,24 @@ func (k *Keeper) GetBalance(ctx sdk.Context, addr common.Address) *big.Int {
 // - `nil`: london hardfork not enabled.
 // - `0`: london hardfork enabled but feemarket is not enabled.
 // - `n`: both london hardfork and feemarket are enabled.
-func (k Keeper) GetBaseFee(ctx sdk.Context, ethCfg *params.ChainConfig) *big.Int {
-	return k.getBaseFee(ctx, types.IsLondon(ethCfg, ctx.BlockHeight()))
+func (k Keeper) GetBaseFee(ctx sdk.Context, ethCfg *params.ChainConfig) (*big.Int, error) {
+	baseFee, err := k.getBaseFee(ctx, types.IsLondon(ethCfg, ctx.BlockHeight()))
+	return baseFee, err
 }
 
-func (k Keeper) getBaseFee(ctx sdk.Context, london bool) *big.Int {
+func (k Keeper) getBaseFee(ctx sdk.Context, london bool) (*big.Int, error) {
 	if !london {
-		return nil
+		return nil, nil
 	}
-	baseFee := k.feeMarketKeeper.GetBaseFee(ctx)
+	baseFee, err := k.feeMarketKeeper.GetBaseFee(ctx)
+	if err != nil {
+		return nil, err
+	}
 	if baseFee == nil {
 		// return 0 if feemarket not enabled.
 		baseFee = big.NewInt(0)
 	}
-	return baseFee
+	return baseFee, nil
 }
 
 // GetMinGasMultiplier returns the MinGasMultiplier param from the fee market module

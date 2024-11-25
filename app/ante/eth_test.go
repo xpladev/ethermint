@@ -197,7 +197,8 @@ func (suite *AnteTestSuite) TestEthGasConsumeDecorator() {
 	params, err := suite.app.EvmKeeper.GetParams(suite.ctx)
 	suite.Require().NoError(err)
 	ethCfg := params.ChainConfig.EthereumConfig(suite.app.EvmKeeper.ChainID())
-	baseFee := suite.app.EvmKeeper.GetBaseFee(suite.ctx, ethCfg)
+	baseFee, err := suite.app.EvmKeeper.GetBaseFee(suite.ctx, ethCfg)
+	suite.Require().NoError(err)
 	suite.Require().Equal(int64(765625000), baseFee.Int64())
 
 	gasPrice := new(big.Int).Add(baseFee, evmtypes.DefaultPriorityReduction.BigInt())
@@ -375,7 +376,8 @@ func (suite *AnteTestSuite) TestCanTransferDecorator() {
 
 	addr, privKey := tests.NewAddrKey()
 
-	suite.app.FeeMarketKeeper.SetBaseFee(suite.ctx, big.NewInt(100))
+	err := suite.app.FeeMarketKeeper.SetBaseFee(suite.ctx, big.NewInt(100))
+	suite.Require().NoError(err)
 
 	ethContractCreationTxParams := &evmtypes.EvmTxArgs{
 		ChainID:   suite.app.EvmKeeper.ChainID(),
@@ -392,7 +394,7 @@ func (suite *AnteTestSuite) TestCanTransferDecorator() {
 	tx2 := evmtypes.NewTx(ethContractCreationTxParams)
 	tx.From = addr.Hex()
 
-	err := tx.Sign(suite.ethSigner, tests.NewSigner(privKey))
+	err = tx.Sign(suite.ethSigner, tests.NewSigner(privKey))
 	suite.Require().NoError(err)
 
 	var vmdb *statedb.StateDB

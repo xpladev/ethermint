@@ -272,13 +272,15 @@ func (suite *KeeperTestSuite) sendTx(contractAddr, from common.Address, transfer
 	// Mint the max gas to the FeeCollector to ensure balance in case of refund
 	evmParams, err := suite.app.EvmKeeper.GetParams(suite.ctx)
 	suite.Require().NoError(err)
-	suite.MintFeeCollector(sdk.NewCoins(sdk.NewCoin(evmParams.EvmDenom, sdkmath.NewInt(suite.app.FeeMarketKeeper.GetBaseFee(suite.ctx).Int64()*int64(res.Gas)))))
+	baseFee, err := suite.app.FeeMarketKeeper.GetBaseFee(suite.ctx)
+	suite.Require().NoError(err)
+	suite.MintFeeCollector(sdk.NewCoins(sdk.NewCoin(evmParams.EvmDenom, sdkmath.NewInt(baseFee.Int64()*int64(res.Gas)))))
 	ercTransferTxParams := &evm.EvmTxArgs{
 		ChainID:   chainID,
 		Nonce:     nonce,
 		To:        &contractAddr,
 		GasLimit:  res.Gas,
-		GasFeeCap: suite.app.FeeMarketKeeper.GetBaseFee(suite.ctx),
+		GasFeeCap: baseFee,
 		GasTipCap: big.NewInt(1),
 		Input:     transferData,
 		Accesses:  &ethtypes.AccessList{},

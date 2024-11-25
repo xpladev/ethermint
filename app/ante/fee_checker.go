@@ -51,12 +51,15 @@ func NewDynamicFeeChecker(k DynamicFeeEVMKeeper) authante.TxFeeChecker {
 
 		params, err := k.GetParams(ctx)
 		if err != nil {
-			return nil, 0, err
+			return nil, 0, errorsmod.Wrap(err, "failed to get params")
 		}
 		denom := params.EvmDenom
 		ethCfg := params.ChainConfig.EthereumConfig(k.ChainID())
 
-		baseFee := k.GetBaseFee(ctx, ethCfg)
+		baseFee, err := k.GetBaseFee(ctx, ethCfg)
+		if err != nil {
+			return nil, 0, errorsmod.Wrap(err, "failed to get base fee")
+		}
 		if baseFee == nil {
 			// london hardfork is not enabled: fallback to min-gas-prices logic
 			return checkTxFeeWithValidatorMinGasPrices(ctx, feeTx)

@@ -151,7 +151,7 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 
 	evmParams, err := egcd.evmKeeper.GetParams(ctx)
 	if err != nil {
-		return ctx, err
+		return ctx, errorsmod.Wrap(err, "failed to get params")
 	}
 	chainCfg := evmParams.GetChainConfig()
 	ethCfg := chainCfg.EthereumConfig(egcd.evmKeeper.ChainID())
@@ -163,7 +163,10 @@ func (egcd EthGasConsumeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 
 	// Use the lowest priority of all the messages as the final one.
 	minPriority := int64(math.MaxInt64)
-	baseFee := egcd.evmKeeper.GetBaseFee(ctx, ethCfg)
+	baseFee, err := egcd.evmKeeper.GetBaseFee(ctx, ethCfg)
+	if err != nil {
+		return ctx, errorsmod.Wrap(err, "failed to get base fee")
+	}
 
 	for _, msg := range tx.GetMsgs() {
 		msgEthTx, ok := msg.(*evmtypes.MsgEthereumTx)
@@ -263,7 +266,7 @@ func NewCanTransferDecorator(evmKeeper EVMKeeper) CanTransferDecorator {
 func (ctd CanTransferDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
 	params, err := ctd.evmKeeper.GetParams(ctx)
 	if err != nil {
-		return ctx, err
+		return ctx, errorsmod.Wrap(err, "failed to get params")
 	}
 	ethCfg := params.ChainConfig.EthereumConfig(ctd.evmKeeper.ChainID())
 	signer := ethtypes.MakeSigner(ethCfg, big.NewInt(ctx.BlockHeight()))
@@ -274,7 +277,10 @@ func (ctd CanTransferDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 			return ctx, errorsmod.Wrapf(errortypes.ErrUnknownRequest, "invalid message type %T, expected %T", msg, (*evmtypes.MsgEthereumTx)(nil))
 		}
 
-		baseFee := ctd.evmKeeper.GetBaseFee(ctx, ethCfg)
+		baseFee, err := ctd.evmKeeper.GetBaseFee(ctx, ethCfg)
+		if err != nil {
+			return ctx, errorsmod.Wrap(err, "failed to get base fee")
+		}
 
 		coreMsg, err := msgEthTx.AsMessage(signer, baseFee)
 		if err != nil {

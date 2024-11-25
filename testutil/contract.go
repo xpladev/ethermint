@@ -45,11 +45,15 @@ func DeployContract(
 		return common.Address{}, err
 	}
 
+	baseFee, err := ethermintApp.FeeMarketKeeper.GetBaseFee(ctx)
+	if err != nil {
+		return common.Address{}, err
+	}
 	msgEthereumTx := evm.NewTx(&evm.EvmTxArgs{
 		ChainID:   chainID,
 		Nonce:     nonce,
 		GasLimit:  gas,
-		GasFeeCap: ethermintApp.FeeMarketKeeper.GetBaseFee(ctx),
+		GasFeeCap: baseFee,
 		GasTipCap: big.NewInt(1),
 		Input:     data,
 		Accesses:  &ethtypes.AccessList{},

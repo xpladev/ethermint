@@ -35,7 +35,7 @@ import (
 type DynamicFeeEVMKeeper interface {
 	ChainID() *big.Int
 	GetParams(ctx sdk.Context) (evmtypes.Params, error)
-	GetBaseFee(ctx sdk.Context, ethCfg *params.ChainConfig) *big.Int
+	GetBaseFee(ctx sdk.Context, ethCfg *params.ChainConfig) (*big.Int, error)
 }
 
 // EVMKeeper defines the expected keeper interface used on the Eth AnteHandler
@@ -59,5 +59,5 @@ type protoTxProvider interface {
 type FeeMarketKeeper interface {
 	GetParams(ctx sdk.Context) (params feemarkettypes.Params, err error)
 	AddTransientGasWanted(ctx sdk.Context, gasWanted uint64) (uint64, error)
-	GetBaseFeeEnabled(ctx sdk.Context) bool
+	GetBaseFeeEnabled(ctx sdk.Context) (bool, error)
 }

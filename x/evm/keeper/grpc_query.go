@@ -634,7 +634,10 @@ func (k Keeper) BaseFee(c context.Context, _ *types.QueryBaseFeeRequest) (*types
 	}
 
 	ethCfg := params.ChainConfig.EthereumConfig(k.eip155ChainID)
-	baseFee := k.GetBaseFee(ctx, ethCfg)
+	baseFee, err := k.GetBaseFee(ctx, ethCfg)
+	if err != nil {
+		return nil, err
+	}
 
 	res := &types.QueryBaseFeeResponse{}
 	if baseFee != nil {

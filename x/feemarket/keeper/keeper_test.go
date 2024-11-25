@@ -179,7 +179,8 @@ func (suite *KeeperTestSuite) TestSetGetBlockGasWanted() {
 		{
 			"with last block given",
 			func() {
-				suite.app.FeeMarketKeeper.SetBlockGasWanted(suite.ctx, uint64(1000000))
+				err := suite.app.FeeMarketKeeper.SetBlockGasWanted(suite.ctx, uint64(1000000))
+				suite.Require().NoError(err)
 			},
 			uint64(1000000),
 		},
@@ -187,7 +188,8 @@ func (suite *KeeperTestSuite) TestSetGetBlockGasWanted() {
 	for _, tc := range testCases {
 		tc.malleate()
 
-		gas := suite.app.FeeMarketKeeper.GetBlockGasWanted(suite.ctx)
+		gas, err := suite.app.FeeMarketKeeper.GetBlockGasWanted(suite.ctx)
+		suite.Require().NoError(err)
 		suite.Require().Equal(tc.expGas, gas, tc.name)
 	}
 }
@@ -201,7 +203,8 @@ func (suite *KeeperTestSuite) TestSetGetGasFee() {
 		{
 			"with last block given",
 			func() {
-				suite.app.FeeMarketKeeper.SetBaseFee(suite.ctx, sdkmath.LegacyOneDec().BigInt())
+				err := suite.app.FeeMarketKeeper.SetBaseFee(suite.ctx, sdkmath.LegacyOneDec().BigInt())
+				suite.Require().NoError(err)
 			},
 			sdkmath.LegacyOneDec().BigInt(),
 		},
@@ -210,7 +213,8 @@ func (suite *KeeperTestSuite) TestSetGetGasFee() {
 	for _, tc := range testCases {
 		tc.malleate()
 
-		fee := suite.app.FeeMarketKeeper.GetBaseFee(suite.ctx)
+		fee, err := suite.app.FeeMarketKeeper.GetBaseFee(suite.ctx)
+		suite.Require().NoError(err)
 		suite.Require().Equal(tc.expFee, fee, tc.name)
 	}
 }

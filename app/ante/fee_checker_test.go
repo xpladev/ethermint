@@ -23,11 +23,11 @@ type MockEVMKeeper struct {
 	EnableLondonHF bool
 }
 
-func (m MockEVMKeeper) GetBaseFee(ctx sdk.Context, ethCfg *params.ChainConfig) *big.Int {
+func (m MockEVMKeeper) GetBaseFee(ctx sdk.Context, ethCfg *params.ChainConfig) (*big.Int, error) {
 	if m.EnableLondonHF {
-		return m.BaseFee
+		return m.BaseFee, nil
 	}
-	return nil
+	return nil, nil
 }
 
 func (m MockEVMKeeper) GetParams(ctx sdk.Context) (evmtypes.Params, error) {

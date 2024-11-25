@@ -502,14 +502,16 @@ func (suite *KeeperTestSuite) TestVerifyFeeAndDeductTxCostsFromUserBalance() {
 			evmParams, err := suite.app.EvmKeeper.GetParams(suite.ctx)
 			suite.Require().NoError(err)
 			ethCfg := evmParams.GetChainConfig().EthereumConfig(nil)
-			baseFee := suite.app.EvmKeeper.GetBaseFee(suite.ctx, ethCfg)
+			baseFee, err := suite.app.EvmKeeper.GetBaseFee(suite.ctx, ethCfg)
+			suite.Require().NoError(err)
 			priority := evmtypes.GetTxPriority(txData, baseFee)
 
 			fees, err := keeper.VerifyFee(txData, evmtypes.DefaultEVMDenom, baseFee, false, false, suite.ctx.IsCheckTx())
 			if tc.expectPassVerify {
 				suite.Require().NoError(err, "valid test %d failed - '%s'", i, tc.name)
 				if tc.enableFeemarket {
-					baseFee := suite.app.FeeMarketKeeper.GetBaseFee(suite.ctx)
+					baseFee, err := suite.app.FeeMarketKeeper.GetBaseFee(suite.ctx)
+					suite.Require().NoError(err)
 					suite.Require().Equal(
 						fees,
 						sdk.NewCoins(

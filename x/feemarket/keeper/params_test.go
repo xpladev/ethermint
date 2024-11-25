@@ -48,7 +48,9 @@ func (suite *KeeperTestSuite) TestSetGetParams() {
 				return true
 			},
 			func() interface{} {
-				return suite.app.FeeMarketKeeper.GetBaseFeeEnabled(suite.ctx)
+				enable, err := suite.app.FeeMarketKeeper.GetBaseFeeEnabled(suite.ctx)
+				suite.Require().NoError(err)
+				return enable
 			},
 			true,
 		},
@@ -61,7 +63,9 @@ func (suite *KeeperTestSuite) TestSetGetParams() {
 				return true
 			},
 			func() interface{} {
-				return suite.app.FeeMarketKeeper.GetBaseFeeEnabled(suite.ctx)
+				enable, err := suite.app.FeeMarketKeeper.GetBaseFeeEnabled(suite.ctx)
+				suite.Require().NoError(err)
+				return enable
 			},
 			false,
 		},
