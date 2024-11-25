@@ -120,11 +120,10 @@ func (suite *KeeperTestSuite) TestCalculateBaseFee() {
 			suite.ctx = suite.ctx.WithConsensusParams(consParams)
 
 			fee, err := suite.app.FeeMarketKeeper.CalculateBaseFee(suite.ctx)
+			suite.Require().NoError(err)
 			if tc.NoBaseFee {
-				suite.Require().NoError(err)
 				suite.Require().Nil(fee, tc.name)
 			} else {
-				suite.Require().NoError(err)
 				suite.Require().Equal(tc.expFee(params.BaseFee), sdkmath.NewIntFromBigInt(fee), tc.name)
 			}
 		})
