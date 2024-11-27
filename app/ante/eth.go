@@ -317,7 +317,7 @@ func (ctd CanTransferDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 		stateDB := statedb.New(ctx, ctd.evmKeeper, statedb.NewEmptyTxConfig(common.BytesToHash(ctx.HeaderHash())))
 		evm, err := ctd.evmKeeper.NewEVM(ctx, coreMsg, cfg, evmtypes.NewNoOpTracer(), stateDB)
 		if err != nil {
-			return ctx, err
+			return ctx, errorsmod.Wrap(err, "failed to create NewEVM")
 		}
 
 		// check that caller has enough balance to cover asset transfer for **topmost** call
