@@ -234,6 +234,9 @@ var _ = Describe("Feemarket", func() {
 						// Note that max priority fee per gas can't be higher than the max fee per gas (gasFeeCap), i.e. 30_000_000_000)
 						return txParams{nil, big.NewInt(minGasPrices - 10_000_000_000), big.NewInt(30_000_000_000), &ethtypes.AccessList{}}
 					}),
+					Entry("dynamic tx with GasFeeCap > MinGasPrices, EffectivePrice < MinGasPrices", func() txParams {
+						return txParams{nil, big.NewInt(minGasPrices + 10_000_000_000), big.NewInt(0), &ethtypes.AccessList{}}
+					}),
 				)
 
 				DescribeTable("should accept transactions with gasPrice >= MinGasPrices",
@@ -450,6 +453,11 @@ func setupTestWithContext(valMinGasPrice string, minGasPrice sdkmath.LegacyDec, 
 	err = s.app.FeeMarketKeeper.SetBaseFee(s.ctx, baseFee.BigInt())
 	s.Require().NoError(err)
 	s.Commit()
+	// s.Commmit() reset the params so set one more
+	err = s.app.FeeMarketKeeper.SetParams(s.ctx, params)
+	s.Require().NoError(err)
+	err = s.app.FeeMarketKeeper.SetBaseFee(s.ctx, baseFee.BigInt())
+	s.Require().NoError(err)
 
 	return privKey, msg
 }
