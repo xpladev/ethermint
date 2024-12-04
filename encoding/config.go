@@ -29,10 +29,8 @@ import (
 	"github.com/cosmos/gogoproto/proto"
 
 	evmapi "github.com/xpladev/ethermint/api/ethermint/evm/v1"
-	erc20api "github.com/xpladev/ethermint/api/evmos/erc20/v1"
 	enccodec "github.com/xpladev/ethermint/encoding/codec"
 	ethermint "github.com/xpladev/ethermint/types"
-	erc20types "github.com/xpladev/ethermint/x/erc20/types"
 	evmtypes "github.com/xpladev/ethermint/x/evm/types"
 )
 
@@ -51,11 +49,6 @@ func MakeConfig() ethermint.EncodingConfig {
 	signingOptions.DefineCustomGetSigners(
 		protov2.MessageName(&evmapi.MsgEthereumTx{}),
 		evmtypes.GetSignersV2,
-	)
-	// apply custom GetSigners for MsgConvertERC20
-	signingOptions.DefineCustomGetSigners(
-		protov2.MessageName(&erc20api.MsgConvertERC20{}),
-		erc20types.GetSignersV2,
 	)
 
 	interfaceRegistry, err := types.NewInterfaceRegistryWithOptions(types.InterfaceRegistryOptions{
