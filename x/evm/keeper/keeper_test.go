@@ -89,13 +89,13 @@ func TestKeeperTestSuite(t *testing.T) {
 
 func (suite *KeeperTestSuite) SetupTest() {
 	checkTx := false
-	suite.app = app.Setup(checkTx, nil)
+	suite.app = app.EthSetup(checkTx, nil)
 	suite.SetupApp(checkTx)
 }
 
 func (suite *KeeperTestSuite) SetupTestWithT(t require.TestingT) {
 	checkTx := false
-	suite.app = app.Setup(checkTx, nil)
+	suite.app = app.EthSetup(checkTx, nil)
 	suite.SetupAppWithT(checkTx, t)
 }
 

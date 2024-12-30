@@ -522,8 +522,7 @@ func NewEthermintApp(
 	)
 
 	app.EvmKeeper = app.EvmKeeper.SetHooks(
-		evmkeeper.NewMultiEvmHooks(
-		),
+		evmkeeper.NewMultiEvmHooks(),
 	)
 
 	// Create Transfer Keepers
