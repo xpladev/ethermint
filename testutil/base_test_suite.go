@@ -1,0 +1,155 @@
+package testutil
+
+import (
+	_ "embed"
+	"time"
+
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
+
+	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/cosmos/cosmos-sdk/crypto/keyring"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+
+	"github.com/xpladev/ethermint/app"
+	"github.com/xpladev/ethermint/crypto/ethsecp256k1"
+	"github.com/xpladev/ethermint/encoding"
+	"github.com/xpladev/ethermint/tests"
+	ethermint "github.com/xpladev/ethermint/types"
+	"github.com/xpladev/ethermint/x/evm/statedb"
+	evmtypes "github.com/xpladev/ethermint/x/evm/types"
+
+	"github.com/ethereum/go-ethereum/common"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/crypto"
+
+	abci "github.com/cometbft/cometbft/abci/types"
+	"github.com/cometbft/cometbft/crypto/tmhash"
+	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
+	tmversion "github.com/cometbft/cometbft/proto/tendermint/version"
+	"github.com/cometbft/cometbft/version"
+)
+
+type BaseTestSuite struct {
+	suite.Suite
+
+	Ctx         sdk.Context
+	App         *app.EthermintApp
+	//queryClient evmtypes.QueryClient //check
+	Address     common.Address
+	ConsAddress sdk.ConsAddress
+
+	// for generate test tx
+	ClientCtx client.Context
+	EthSigner ethtypes.Signer
+
+	AppCodec codec.Codec
+	Signer   keyring.Signer
+
+	//enableFeemarket  bool //evm
+	//enableLondonHF   bool //evm
+	//mintFeeCollector bool //evm
+	Denom            string
+}
+
+func (suite *BaseTestSuite) SetupTest() {
+	checkTx := false
+	suite.App = app.EthSetup(checkTx, nil)
+	suite.SetupApp(checkTx)
+}
+
+func (suite *BaseTestSuite) SetupTestWithT(t require.TestingT) {
+	checkTx := false
+	suite.App = app.EthSetup(checkTx, nil)
+	suite.SetupAppWithT(checkTx, t, nil)
+}
+
+func (suite *BaseTestSuite) SetupApp(checkTx bool) {
+	suite.SetupAppWithT(checkTx, suite.T(), nil)
+}
+
+// SetupApp setup test environment, it uses`require.TestingT` to support both `testing.T` and `testing.B`.
+func (suite *BaseTestSuite) SetupAppWithT(checkTx bool, t require.TestingT, patch func(app *app.EthermintApp, genesis app.GenesisState) app.GenesisState) {
+	// account key, use a constant account to keep unit test deterministic.
+	ecdsaPriv, err := crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+	require.NoError(t, err)
+	priv := &ethsecp256k1.PrivKey{
+		Key: crypto.FromECDSA(ecdsaPriv),
+	}
+	suite.Address = common.BytesToAddress(priv.PubKey().Address().Bytes())
+	suite.Signer = tests.NewSigner(priv)
+
+	// consensus key
+	priv, err = ethsecp256k1.GenerateKey()
+	require.NoError(t, err)
+	suite.ConsAddress = sdk.ConsAddress(priv.PubKey().Address())
+
+	suite.App = app.EthSetup(checkTx, patch)
+
+	suite.Ctx = suite.App.BaseApp.NewUncachedContext(checkTx, tmproto.Header{
+		Height:          1,
+		ChainID:         "ethermint_9000-1",
+		Time:            time.Now().UTC(),
+		ProposerAddress: suite.ConsAddress.Bytes(),
+		Version: tmversion.Consensus{
+			Block: version.BlockProtocol,
+		},
+		LastBlockId: tmproto.BlockID{
+			Hash: tmhash.Sum([]byte("block_id")),
+			PartSetHeader: tmproto.PartSetHeader{
+				Total: 11,
+				Hash:  tmhash.Sum([]byte("partset_header")),
+			},
+		},
+		AppHash:            tmhash.Sum([]byte("app")),
+		DataHash:           tmhash.Sum([]byte("data")),
+		EvidenceHash:       tmhash.Sum([]byte("evidence")),
+		ValidatorsHash:     tmhash.Sum([]byte("validators")),
+		NextValidatorsHash: tmhash.Sum([]byte("next_validators")),
+		ConsensusHash:      tmhash.Sum([]byte("consensus")),
+		LastResultsHash:    tmhash.Sum([]byte("last_result")),
+	})
+
+	acc := &ethermint.EthAccount{
+		BaseAccount: authtypes.NewBaseAccount(sdk.AccAddress(suite.Address.Bytes()), nil, 0, 0),
+		CodeHash:    common.BytesToHash(crypto.Keccak256(nil)).String(),
+	}
+
+	acc.AccountNumber = suite.App.AccountKeeper.NextAccountNumber(suite.Ctx)
+	suite.App.AccountKeeper.SetAccount(suite.Ctx, acc)
+
+	valAddr := sdk.ValAddress(suite.Address.Bytes())
+	validator, err := stakingtypes.NewValidator(valAddr.String(), priv.PubKey(), stakingtypes.Description{})
+	require.NoError(t, err)
+	err = suite.App.StakingKeeper.SetValidatorByConsAddr(suite.Ctx, validator)
+	require.NoError(t, err)
+	suite.App.StakingKeeper.SetValidator(suite.Ctx, validator)
+
+	encodingConfig := encoding.MakeConfig()
+	suite.ClientCtx = client.Context{}.WithTxConfig(encodingConfig.TxConfig)
+	suite.EthSigner = ethtypes.LatestSignerForChainID(suite.App.EvmKeeper.ChainID())
+	suite.AppCodec = encodingConfig.Codec
+	suite.Denom = evmtypes.DefaultEVMDenom
+}
+
+// Commit and begin new block
+func (suite *BaseTestSuite) Commit() {
+	_, err := suite.App.FinalizeBlock(&abci.RequestFinalizeBlock{
+		Height: suite.Ctx.BlockHeight(),
+		Time:   suite.Ctx.BlockTime(),
+	})
+	suite.Require().NoError(err)
+	suite.App.Commit()
+	header := suite.Ctx.BlockHeader()
+	header.Height += 1
+
+	// update ctx
+	suite.Ctx = suite.App.NewUncachedContext(false, header)
+}
+
+func (suite *BaseTestSuite) StateDB() *statedb.StateDB {
+	return statedb.New(suite.Ctx, suite.App.EvmKeeper, statedb.NewEmptyTxConfig(common.BytesToHash(suite.Ctx.HeaderHash())))
+}
