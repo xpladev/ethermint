@@ -60,12 +60,12 @@ func (suite *KeeperTestSuite) TestEvmHooks() {
 
 	for _, tc := range testCases {
 		suite.SetupTest()
-		suite.app.EvmKeeper = suite.app.EvmKeeper.CleanHooks()
+		suite.App.EvmKeeper = suite.App.EvmKeeper.CleanHooks()
 		hook := tc.setupHook()
-		suite.app.EvmKeeper.SetHooks(keeper.NewMultiEvmHooks(hook))
+		suite.App.EvmKeeper.SetHooks(keeper.NewMultiEvmHooks(hook))
 
-		k := suite.app.EvmKeeper
-		ctx := suite.ctx
+		k := suite.App.EvmKeeper
+		ctx := suite.Ctx
 		txHash := common.BigToHash(big.NewInt(1))
 		vmdb := statedb.New(ctx, k, statedb.NewTxConfig(
 			common.BytesToHash(ctx.HeaderHash()),
@@ -76,7 +76,7 @@ func (suite *KeeperTestSuite) TestEvmHooks() {
 
 		vmdb.AddLog(&ethtypes.Log{
 			Topics:  []common.Hash{},
-			Address: suite.address,
+			Address: suite.Address,
 		})
 		logs := vmdb.Logs()
 		receipt := &ethtypes.Receipt{

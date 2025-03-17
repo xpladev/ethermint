@@ -131,12 +131,12 @@ var _ = Describe("Feemarket", func() {
 // setupTestWithContext sets up a test chain with an example Cosmos send msg,
 // given a local (validator config) and a gloabl (feemarket param) minGasPrice
 func setupTestWithContext(valMinGasPrice string, minGasPrice sdkmath.LegacyDec, baseFee sdkmath.Int) (*ethsecp256k1.PrivKey, banktypes.MsgSend) {
-	privKey, msg := setupTest(valMinGasPrice + s.denom)
+	privKey, msg := setupTest(valMinGasPrice + s.Denom)
 	params := types.DefaultParams()
 	params.MinGasPrice = minGasPrice
-	err := s.app.FeeMarketKeeper.SetParams(s.ctx, params)
+	err := s.App.FeeMarketKeeper.SetParams(s.Ctx, params)
 	s.Require().NoError(err)
-	err = s.app.FeeMarketKeeper.SetBaseFee(s.ctx, baseFee.BigInt())
+	err = s.App.FeeMarketKeeper.SetBaseFee(s.Ctx, baseFee.BigInt())
 	s.Require().NoError(err)
 	s.Commit()
 
@@ -150,16 +150,16 @@ func setupTest(localMinGasPrices string) (*ethsecp256k1.PrivKey, banktypes.MsgSe
 	amount, ok := sdkmath.NewIntFromString("10000000000000000000")
 	s.Require().True(ok)
 	initBalance := sdk.Coins{sdk.Coin{
-		Denom:  s.denom,
+		Denom:  s.Denom,
 		Amount: amount,
 	}}
-	testutil.FundAccount(s.app.BankKeeper, s.ctx, address, initBalance)
+	testutil.FundAccount(s.App.BankKeeper, s.Ctx, address, initBalance)
 
 	msg := banktypes.MsgSend{
 		FromAddress: address.String(),
 		ToAddress:   address.String(),
 		Amount: sdk.Coins{sdk.Coin{
-			Denom:  s.denom,
+			Denom:  s.Denom,
 			Amount: sdkmath.NewInt(10000),
 		}},
 	}
@@ -197,7 +197,7 @@ func setupChain(localMinGasPricesStr string) {
 		},
 	)
 
-	s.app = newapp
+	s.App = newapp
 	s.SetupApp(false)
 }
 
@@ -207,8 +207,8 @@ func generateKey() (*ethsecp256k1.PrivKey, sdk.AccAddress) {
 }
 
 func getNonce(addressBytes []byte) uint64 {
-	return s.app.EvmKeeper.GetNonce(
-		s.ctx,
+	return s.App.EvmKeeper.GetNonce(
+		s.Ctx,
 		common.BytesToAddress(addressBytes),
 	)
 }
@@ -222,7 +222,7 @@ func buildEthTx(
 	gasTipCap *big.Int,
 	accesses *ethtypes.AccessList,
 ) *evmtypes.MsgEthereumTx {
-	chainID := s.app.EvmKeeper.ChainID()
+	chainID := s.App.EvmKeeper.ChainID()
 	from := common.BytesToAddress(priv.PubKey().Address().Bytes())
 	nonce := getNonce(from.Bytes())
 	data := make([]byte, 0)
@@ -246,12 +246,12 @@ func prepareEthTx(priv *ethsecp256k1.PrivKey, msgEthereumTx *evmtypes.MsgEthereu
 	option, err := codectypes.NewAnyWithValue(&evmtypes.ExtensionOptionsEthereumTx{})
 	s.Require().NoError(err)
 
-	txBuilder := s.app.TxConfig().NewTxBuilder()
+	txBuilder := s.App.TxConfig().NewTxBuilder()
 	builder, ok := txBuilder.(authtx.ExtensionOptionsTxBuilder)
 	s.Require().True(ok)
 	builder.SetExtensionOptions(option)
 
-	err = msgEthereumTx.Sign(s.ethSigner, tests.NewSigner(priv))
+	err = msgEthereumTx.Sign(s.EthSigner, tests.NewSigner(priv))
 	s.Require().NoError(err)
 
 	// A valid msg should have empty `From`
@@ -262,7 +262,7 @@ func prepareEthTx(priv *ethsecp256k1.PrivKey, msgEthereumTx *evmtypes.MsgEthereu
 	txData, err := evmtypes.UnpackTxData(msgEthereumTx.Data)
 	s.Require().NoError(err)
 
-	params, err := s.app.EvmKeeper.GetParams(s.ctx)
+	params, err := s.App.EvmKeeper.GetParams(s.Ctx)
 	s.Require().NoError(err)
 	evmDenom := params.EvmDenom
 	fees := sdk.Coins{{Denom: evmDenom, Amount: sdkmath.NewIntFromBigInt(txData.Fee())}}
@@ -270,7 +270,7 @@ func prepareEthTx(priv *ethsecp256k1.PrivKey, msgEthereumTx *evmtypes.MsgEthereu
 	builder.SetGasLimit(msgEthereumTx.GetGas())
 
 	// bz are bytes to be broadcasted over the network
-	bz, err := s.app.TxConfig().TxEncoder()(txBuilder.GetTx())
+	bz, err := s.App.TxConfig().TxEncoder()(txBuilder.GetTx())
 	s.Require().NoError(err)
 
 	return bz
@@ -279,20 +279,20 @@ func prepareEthTx(priv *ethsecp256k1.PrivKey, msgEthereumTx *evmtypes.MsgEthereu
 func checkEthTx(priv *ethsecp256k1.PrivKey, msgEthereumTx *evmtypes.MsgEthereumTx) abci.ResponseCheckTx {
 	bz := prepareEthTx(priv, msgEthereumTx)
 	req := abci.RequestCheckTx{Tx: bz}
-	res, _ := s.app.BaseApp.CheckTx(&req)
+	res, _ := s.App.BaseApp.CheckTx(&req)
 	return *res
 }
 
 func deliverEthTx(priv *ethsecp256k1.PrivKey, msgEthereumTx *evmtypes.MsgEthereumTx) *abci.ExecTxResult {
 	bz := prepareEthTx(priv, msgEthereumTx)
 	bzs := [][]byte{[]byte(bz)}
-	height := s.app.LastBlockHeight() + 1
+	height := s.App.LastBlockHeight() + 1
 	req := abci.RequestFinalizeBlock{
-		ProposerAddress: s.consAddress,
+		ProposerAddress: s.ConsAddress,
 		Height:          height,
 		Txs:             bzs,
 	}
-	res, err := s.app.BaseApp.FinalizeBlock(&req)
+	res, err := s.App.BaseApp.FinalizeBlock(&req)
 	if err != nil {
 		panic(err)
 	}

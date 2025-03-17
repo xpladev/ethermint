@@ -7,7 +7,6 @@ import (
 	"math/big"
 	"os"
 	"testing"
-	"time"
 
 	sdkmath "cosmossdk.io/math"
 
@@ -18,19 +17,13 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/cosmos/cosmos-sdk/baseapp"
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	"github.com/xpladev/ethermint/app"
-	"github.com/xpladev/ethermint/crypto/ethsecp256k1"
-	"github.com/xpladev/ethermint/encoding"
 	"github.com/xpladev/ethermint/server/config"
-	"github.com/xpladev/ethermint/tests"
+	"github.com/xpladev/ethermint/testutil"
 	ethermint "github.com/xpladev/ethermint/types"
 	"github.com/xpladev/ethermint/x/evm/statedb"
 	evmtypes "github.com/xpladev/ethermint/x/evm/types"
@@ -41,34 +34,16 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
-
-	abci "github.com/cometbft/cometbft/abci/types"
-	"github.com/cometbft/cometbft/crypto/tmhash"
-	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
-	tmversion "github.com/cometbft/cometbft/proto/tendermint/version"
-	"github.com/cometbft/cometbft/version"
 )
 
 type KeeperTestSuite struct {
-	suite.Suite
+	testutil.BaseTestSuite
 
-	ctx         sdk.Context
-	app         *app.EthermintApp
 	queryClient evmtypes.QueryClient
-	address     common.Address
-	consAddress sdk.ConsAddress
-
-	// for generate test tx
-	clientCtx client.Context
-	ethSigner ethtypes.Signer
-
-	appCodec codec.Codec
-	signer   keyring.Signer
 
 	enableFeemarket  bool
 	enableLondonHF   bool
 	mintFeeCollector bool
-	denom            string
 }
 
 var s *KeeperTestSuite
@@ -89,13 +64,11 @@ func TestKeeperTestSuite(t *testing.T) {
 
 func (suite *KeeperTestSuite) SetupTest() {
 	checkTx := false
-	suite.app = app.EthSetup(checkTx, nil)
 	suite.SetupApp(checkTx)
 }
 
 func (suite *KeeperTestSuite) SetupTestWithT(t require.TestingT) {
 	checkTx := false
-	suite.app = app.EthSetup(checkTx, nil)
 	suite.SetupAppWithT(checkTx, t)
 }
 
@@ -105,21 +78,7 @@ func (suite *KeeperTestSuite) SetupApp(checkTx bool) {
 
 // SetupApp setup test environment, it uses`require.TestingT` to support both `testing.T` and `testing.B`.
 func (suite *KeeperTestSuite) SetupAppWithT(checkTx bool, t require.TestingT) {
-	// account key, use a constant account to keep unit test deterministic.
-	ecdsaPriv, err := crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
-	require.NoError(t, err)
-	priv := &ethsecp256k1.PrivKey{
-		Key: crypto.FromECDSA(ecdsaPriv),
-	}
-	suite.address = common.BytesToAddress(priv.PubKey().Address().Bytes())
-	suite.signer = tests.NewSigner(priv)
-
-	// consensus key
-	priv, err = ethsecp256k1.GenerateKey()
-	require.NoError(t, err)
-	suite.consAddress = sdk.ConsAddress(priv.PubKey().Address())
-
-	suite.app = app.EthSetup(checkTx, func(app *app.EthermintApp, genesis app.GenesisState) app.GenesisState {
+	suite.BaseTestSuite.SetupAppWithT(checkTx, t, func(app *app.EthermintApp, genesis app.GenesisState) app.GenesisState {
 		feemarketGenesis := feemarkettypes.DefaultGenesisState()
 		if suite.enableFeemarket {
 			feemarketGenesis.Params.EnableHeight = 1
@@ -144,125 +103,70 @@ func (suite *KeeperTestSuite) SetupAppWithT(checkTx bool, t require.TestingT) {
 			coins := sdk.NewCoins(sdk.NewCoin(evmtypes.DefaultEVMDenom, sdkmath.NewInt(int64(params.TxGas)-1)))
 			balances := []banktypes.Balance{
 				{
-					Address: suite.app.AccountKeeper.GetModuleAddress(authtypes.FeeCollectorName).String(),
+					Address: suite.App.AccountKeeper.GetModuleAddress(authtypes.FeeCollectorName).String(),
 					Coins:   coins,
 				},
 			}
 			var bankGenesis banktypes.GenesisState
-			suite.app.AppCodec().MustUnmarshalJSON(genesis[banktypes.ModuleName], &bankGenesis)
+			suite.App.AppCodec().MustUnmarshalJSON(genesis[banktypes.ModuleName], &bankGenesis)
 			// Update balances and total supply
 			bankGenesis.Balances = append(bankGenesis.Balances, balances...)
 			bankGenesis.Supply = bankGenesis.Supply.Add(coins...)
-			genesis[banktypes.ModuleName] = suite.app.AppCodec().MustMarshalJSON(&bankGenesis)
+			genesis[banktypes.ModuleName] = suite.App.AppCodec().MustMarshalJSON(&bankGenesis)
 		}
 
 		return genesis
 	})
 
-	suite.ctx = suite.app.BaseApp.NewUncachedContext(checkTx, tmproto.Header{
-		Height:          1,
-		ChainID:         "ethermint_9000-1",
-		Time:            time.Now().UTC(),
-		ProposerAddress: suite.consAddress.Bytes(),
-		Version: tmversion.Consensus{
-			Block: version.BlockProtocol,
-		},
-		LastBlockId: tmproto.BlockID{
-			Hash: tmhash.Sum([]byte("block_id")),
-			PartSetHeader: tmproto.PartSetHeader{
-				Total: 11,
-				Hash:  tmhash.Sum([]byte("partset_header")),
-			},
-		},
-		AppHash:            tmhash.Sum([]byte("app")),
-		DataHash:           tmhash.Sum([]byte("data")),
-		EvidenceHash:       tmhash.Sum([]byte("evidence")),
-		ValidatorsHash:     tmhash.Sum([]byte("validators")),
-		NextValidatorsHash: tmhash.Sum([]byte("next_validators")),
-		ConsensusHash:      tmhash.Sum([]byte("consensus")),
-		LastResultsHash:    tmhash.Sum([]byte("last_result")),
-	})
-
-	queryHelper := baseapp.NewQueryServerTestHelper(suite.ctx, suite.app.InterfaceRegistry())
-	evmtypes.RegisterQueryServer(queryHelper, suite.app.EvmKeeper)
+	queryHelper := baseapp.NewQueryServerTestHelper(suite.Ctx, suite.App.InterfaceRegistry())
+	evmtypes.RegisterQueryServer(queryHelper, suite.App.EvmKeeper)
 	suite.queryClient = evmtypes.NewQueryClient(queryHelper)
-
-	acc := &ethermint.EthAccount{
-		BaseAccount: authtypes.NewBaseAccount(sdk.AccAddress(suite.address.Bytes()), nil, 0, 0),
-		CodeHash:    common.BytesToHash(crypto.Keccak256(nil)).String(),
-	}
-
-	acc.AccountNumber = suite.app.AccountKeeper.NextAccountNumber(suite.ctx)
-	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
-
-	valAddr := sdk.ValAddress(suite.address.Bytes())
-	validator, err := stakingtypes.NewValidator(valAddr.String(), priv.PubKey(), stakingtypes.Description{})
-	require.NoError(t, err)
-	err = suite.app.StakingKeeper.SetValidatorByConsAddr(suite.ctx, validator)
-	require.NoError(t, err)
-	suite.app.StakingKeeper.SetValidator(suite.ctx, validator)
-
-	encodingConfig := encoding.MakeConfig()
-	suite.clientCtx = client.Context{}.WithTxConfig(encodingConfig.TxConfig)
-	suite.ethSigner = ethtypes.LatestSignerForChainID(suite.app.EvmKeeper.ChainID())
-	suite.appCodec = encodingConfig.Codec
-	suite.denom = evmtypes.DefaultEVMDenom
 }
 
 func (suite *KeeperTestSuite) EvmDenom() string {
-	ctx := sdk.WrapSDKContext(suite.ctx)
+	ctx := sdk.WrapSDKContext(suite.Ctx)
 	rsp, _ := suite.queryClient.Params(ctx, &evmtypes.QueryParamsRequest{})
 	return rsp.Params.EvmDenom
 }
 
 // Commit and begin new block
 func (suite *KeeperTestSuite) Commit() {
-	_, err := suite.app.FinalizeBlock(&abci.RequestFinalizeBlock{
-		Height: suite.ctx.BlockHeight(),
-		Time:   suite.ctx.BlockTime(),
-	})
-	suite.Require().NoError(err)
-	suite.app.Commit()
-	header := suite.ctx.BlockHeader()
-	header.Height += 1
+	suite.BaseTestSuite.Commit()
 
-	// update ctx
-	suite.ctx = suite.app.NewUncachedContext(false, header)
-
-	queryHelper := baseapp.NewQueryServerTestHelper(suite.ctx, suite.app.InterfaceRegistry())
-	evmtypes.RegisterQueryServer(queryHelper, suite.app.EvmKeeper)
+	queryHelper := baseapp.NewQueryServerTestHelper(suite.Ctx, suite.App.InterfaceRegistry())
+	evmtypes.RegisterQueryServer(queryHelper, suite.App.EvmKeeper)
 	suite.queryClient = evmtypes.NewQueryClient(queryHelper)
 }
 
 func (suite *KeeperTestSuite) StateDB() *statedb.StateDB {
-	return statedb.New(suite.ctx, suite.app.EvmKeeper, statedb.NewEmptyTxConfig(common.BytesToHash(suite.ctx.HeaderHash())))
+	return suite.BaseTestSuite.StateDB()
 }
 
 // DeployTestContract deploy a test erc20 contract and returns the contract address
 func (suite *KeeperTestSuite) DeployTestContract(t require.TestingT, owner common.Address, supply *big.Int) common.Address {
-	ctx := sdk.WrapSDKContext(suite.ctx)
-	chainID := suite.app.EvmKeeper.ChainID()
+	ctx := sdk.WrapSDKContext(suite.Ctx)
+	chainID := suite.App.EvmKeeper.ChainID()
 
 	ctorArgs, err := evmtypes.ERC20Contract.ABI.Pack("", owner, supply)
 	require.NoError(t, err)
 
-	nonce := suite.app.EvmKeeper.GetNonce(suite.ctx, suite.address)
+	nonce := suite.App.EvmKeeper.GetNonce(suite.Ctx, suite.Address)
 
 	data := append(evmtypes.ERC20Contract.Bin, ctorArgs...)
 	args, err := json.Marshal(&evmtypes.TransactionArgs{
-		From: &suite.address,
+		From: &suite.Address,
 		Data: (*hexutil.Bytes)(&data),
 	})
 	require.NoError(t, err)
 	res, err := suite.queryClient.EstimateGas(ctx, &evmtypes.EthCallRequest{
 		Args:            args,
 		GasCap:          uint64(config.DefaultGasCap),
-		ProposerAddress: suite.ctx.BlockHeader().ProposerAddress,
+		ProposerAddress: suite.Ctx.BlockHeader().ProposerAddress,
 	})
 	require.NoError(t, err)
 
 	var erc20DeployTx *evmtypes.MsgEthereumTx
-	baseFee, err := suite.app.FeeMarketKeeper.GetBaseFee(suite.ctx)
+	baseFee, err := suite.App.FeeMarketKeeper.GetBaseFee(suite.Ctx)
 	require.NoError(t, err)
 	if suite.enableFeemarket {
 		ethTxParams := &evmtypes.EvmTxArgs{
@@ -285,18 +189,18 @@ func (suite *KeeperTestSuite) DeployTestContract(t require.TestingT, owner commo
 		erc20DeployTx = evmtypes.NewTx(ethTxParams)
 	}
 
-	erc20DeployTx.From = suite.address.Hex()
-	err = erc20DeployTx.Sign(ethtypes.LatestSignerForChainID(chainID), suite.signer)
+	erc20DeployTx.From = suite.Address.Hex()
+	err = erc20DeployTx.Sign(ethtypes.LatestSignerForChainID(chainID), suite.Signer)
 	require.NoError(t, err)
-	rsp, err := suite.app.EvmKeeper.EthereumTx(ctx, erc20DeployTx)
+	rsp, err := suite.App.EvmKeeper.EthereumTx(ctx, erc20DeployTx)
 	require.NoError(t, err)
 	require.Empty(t, rsp.VmError)
-	return crypto.CreateAddress(suite.address, nonce)
+	return crypto.CreateAddress(suite.Address, nonce)
 }
 
 func (suite *KeeperTestSuite) TransferERC20Token(t require.TestingT, contractAddr, from, to common.Address, amount *big.Int) *evmtypes.MsgEthereumTx {
-	ctx := sdk.WrapSDKContext(suite.ctx)
-	chainID := suite.app.EvmKeeper.ChainID()
+	ctx := sdk.WrapSDKContext(suite.Ctx)
+	chainID := suite.App.EvmKeeper.ChainID()
 
 	transferData, err := evmtypes.ERC20Contract.ABI.Pack("transfer", to, amount)
 	require.NoError(t, err)
@@ -305,14 +209,14 @@ func (suite *KeeperTestSuite) TransferERC20Token(t require.TestingT, contractAdd
 	res, err := suite.queryClient.EstimateGas(ctx, &evmtypes.EthCallRequest{
 		Args:            args,
 		GasCap:          25_000_000,
-		ProposerAddress: suite.ctx.BlockHeader().ProposerAddress,
+		ProposerAddress: suite.Ctx.BlockHeader().ProposerAddress,
 	})
 	require.NoError(t, err)
 
-	nonce := suite.app.EvmKeeper.GetNonce(suite.ctx, suite.address)
+	nonce := suite.App.EvmKeeper.GetNonce(suite.Ctx, suite.Address)
 
 	var ercTransferTx *evmtypes.MsgEthereumTx
-	baseFee, err := suite.app.FeeMarketKeeper.GetBaseFee(suite.ctx)
+	baseFee, err := suite.App.FeeMarketKeeper.GetBaseFee(suite.Ctx)
 	require.NoError(t, err)
 	if suite.enableFeemarket {
 		ethTxParams := &evmtypes.EvmTxArgs{
@@ -337,10 +241,10 @@ func (suite *KeeperTestSuite) TransferERC20Token(t require.TestingT, contractAdd
 		ercTransferTx = evmtypes.NewTx(ethTxParams)
 	}
 
-	ercTransferTx.From = suite.address.Hex()
-	err = ercTransferTx.Sign(ethtypes.LatestSignerForChainID(chainID), suite.signer)
+	ercTransferTx.From = suite.Address.Hex()
+	err = ercTransferTx.Sign(ethtypes.LatestSignerForChainID(chainID), suite.Signer)
 	require.NoError(t, err)
-	rsp, err := suite.app.EvmKeeper.EthereumTx(ctx, ercTransferTx)
+	rsp, err := suite.App.EvmKeeper.EthereumTx(ctx, ercTransferTx)
 	require.NoError(t, err)
 	require.Empty(t, rsp.VmError)
 	return ercTransferTx
@@ -348,12 +252,12 @@ func (suite *KeeperTestSuite) TransferERC20Token(t require.TestingT, contractAdd
 
 // DeployTestMessageCall deploy a test erc20 contract and returns the contract address
 func (suite *KeeperTestSuite) DeployTestMessageCall(t require.TestingT) common.Address {
-	ctx := sdk.WrapSDKContext(suite.ctx)
-	chainID := suite.app.EvmKeeper.ChainID()
+	ctx := sdk.WrapSDKContext(suite.Ctx)
+	chainID := suite.App.EvmKeeper.ChainID()
 
 	data := evmtypes.TestMessageCall.Bin
 	args, err := json.Marshal(&evmtypes.TransactionArgs{
-		From: &suite.address,
+		From: &suite.Address,
 		Data: (*hexutil.Bytes)(&data),
 	})
 	require.NoError(t, err)
@@ -361,14 +265,14 @@ func (suite *KeeperTestSuite) DeployTestMessageCall(t require.TestingT) common.A
 	res, err := suite.queryClient.EstimateGas(ctx, &evmtypes.EthCallRequest{
 		Args:            args,
 		GasCap:          uint64(config.DefaultGasCap),
-		ProposerAddress: suite.ctx.BlockHeader().ProposerAddress,
+		ProposerAddress: suite.Ctx.BlockHeader().ProposerAddress,
 	})
 	require.NoError(t, err)
 
-	nonce := suite.app.EvmKeeper.GetNonce(suite.ctx, suite.address)
+	nonce := suite.App.EvmKeeper.GetNonce(suite.Ctx, suite.Address)
 
 	var erc20DeployTx *evmtypes.MsgEthereumTx
-	baseFee, err := suite.app.FeeMarketKeeper.GetBaseFee(suite.ctx)
+	baseFee, err := suite.App.FeeMarketKeeper.GetBaseFee(suite.Ctx)
 	require.NoError(t, err)
 	if suite.enableFeemarket {
 		ethTxParams := &evmtypes.EvmTxArgs{
@@ -391,13 +295,13 @@ func (suite *KeeperTestSuite) DeployTestMessageCall(t require.TestingT) common.A
 		erc20DeployTx = evmtypes.NewTx(ethTxParams)
 	}
 
-	erc20DeployTx.From = suite.address.Hex()
-	err = erc20DeployTx.Sign(ethtypes.LatestSignerForChainID(chainID), suite.signer)
+	erc20DeployTx.From = suite.Address.Hex()
+	err = erc20DeployTx.Sign(ethtypes.LatestSignerForChainID(chainID), suite.Signer)
 	require.NoError(t, err)
-	rsp, err := suite.app.EvmKeeper.EthereumTx(ctx, erc20DeployTx)
+	rsp, err := suite.App.EvmKeeper.EthereumTx(ctx, erc20DeployTx)
 	require.NoError(t, err)
 	require.Empty(t, rsp.VmError)
-	return crypto.CreateAddress(suite.address, nonce)
+	return crypto.CreateAddress(suite.Address, nonce)
 }
 
 func (suite *KeeperTestSuite) TestBaseFee() {
@@ -418,11 +322,11 @@ func (suite *KeeperTestSuite) TestBaseFee() {
 			suite.enableFeemarket = tc.enableFeemarket
 			suite.enableLondonHF = tc.enableLondonHF
 			suite.SetupTest()
-			suite.app.EvmKeeper.BeginBlock(suite.ctx)
-			params, err := suite.app.EvmKeeper.GetParams(suite.ctx)
+			suite.App.EvmKeeper.BeginBlock(suite.Ctx)
+			params, err := suite.App.EvmKeeper.GetParams(suite.Ctx)
 			suite.Require().NoError(err)
-			ethCfg := params.ChainConfig.EthereumConfig(suite.app.EvmKeeper.ChainID())
-			baseFee, err := suite.app.EvmKeeper.GetBaseFee(suite.ctx, ethCfg)
+			ethCfg := params.ChainConfig.EthereumConfig(suite.App.EvmKeeper.ChainID())
+			baseFee, err := suite.App.EvmKeeper.GetBaseFee(suite.Ctx, ethCfg)
 			suite.Require().NoError(err)
 			suite.Require().Equal(tc.expectBaseFee, baseFee)
 		})
@@ -446,7 +350,7 @@ func (suite *KeeperTestSuite) TestGetAccountStorage() {
 			"Two accounts - one contract (with storage), one wallet",
 			func() {
 				supply := big.NewInt(100)
-				suite.DeployTestContract(suite.T(), suite.address, supply)
+				suite.DeployTestContract(suite.T(), suite.Address, supply)
 			},
 			[]int{2, 0},
 		},
@@ -457,7 +361,7 @@ func (suite *KeeperTestSuite) TestGetAccountStorage() {
 			suite.SetupTest()
 			tc.malleate()
 			i := 0
-			suite.app.AccountKeeper.IterateAccounts(suite.ctx, func(account sdk.AccountI) bool {
+			suite.App.AccountKeeper.IterateAccounts(suite.Ctx, func(account sdk.AccountI) bool {
 				ethAccount, ok := account.(ethermint.EthAccountI)
 				if !ok {
 					// ignore non EthAccounts
@@ -465,7 +369,7 @@ func (suite *KeeperTestSuite) TestGetAccountStorage() {
 				}
 
 				addr := ethAccount.EthAddress()
-				storage := suite.app.EvmKeeper.GetAccountStorage(suite.ctx, addr)
+				storage := suite.App.EvmKeeper.GetAccountStorage(suite.Ctx, addr)
 
 				suite.Require().Equal(tc.expRes[i], len(storage))
 				i++
@@ -482,7 +386,7 @@ func (suite *KeeperTestSuite) TestGetAccountOrEmpty() {
 	}
 
 	supply := big.NewInt(100)
-	contractAddr := suite.DeployTestContract(suite.T(), suite.address, supply)
+	contractAddr := suite.DeployTestContract(suite.T(), suite.Address, supply)
 
 	testCases := []struct {
 		name     string
@@ -503,7 +407,7 @@ func (suite *KeeperTestSuite) TestGetAccountOrEmpty() {
 
 	for _, tc := range testCases {
 		suite.Run(tc.name, func() {
-			res := suite.app.EvmKeeper.GetAccountOrEmpty(suite.ctx, tc.addr)
+			res := suite.App.EvmKeeper.GetAccountOrEmpty(suite.Ctx, tc.addr)
 			if tc.expEmpty {
 				suite.Require().Equal(empty, res)
 			} else {

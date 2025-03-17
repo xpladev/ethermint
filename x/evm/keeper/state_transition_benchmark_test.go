@@ -160,22 +160,22 @@ func BenchmarkApplyTransaction(b *testing.B) {
 	suite := KeeperTestSuite{enableLondonHF: true}
 	suite.SetupTestWithT(b)
 
-	ethSigner := ethtypes.LatestSignerForChainID(suite.app.EvmKeeper.ChainID())
+	ethSigner := ethtypes.LatestSignerForChainID(suite.App.EvmKeeper.ChainID())
 
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
 		tx, err := newSignedEthTx(templateAccessListTx,
-			suite.app.EvmKeeper.GetNonce(suite.ctx, suite.address),
-			sdk.AccAddress(suite.address.Bytes()),
-			suite.signer,
+			suite.App.EvmKeeper.GetNonce(suite.Ctx, suite.Address),
+			sdk.AccAddress(suite.Address.Bytes()),
+			suite.Signer,
 			ethSigner,
 		)
 		require.NoError(b, err)
 
 		b.StartTimer()
-		resp, err := suite.app.EvmKeeper.ApplyTransaction(suite.ctx, tx)
+		resp, err := suite.App.EvmKeeper.ApplyTransaction(suite.Ctx, tx)
 		b.StopTimer()
 
 		require.NoError(b, err)
@@ -187,22 +187,22 @@ func BenchmarkApplyTransactionWithLegacyTx(b *testing.B) {
 	suite := KeeperTestSuite{enableLondonHF: true}
 	suite.SetupTestWithT(b)
 
-	ethSigner := ethtypes.LatestSignerForChainID(suite.app.EvmKeeper.ChainID())
+	ethSigner := ethtypes.LatestSignerForChainID(suite.App.EvmKeeper.ChainID())
 
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
 		tx, err := newSignedEthTx(templateLegacyTx,
-			suite.app.EvmKeeper.GetNonce(suite.ctx, suite.address),
-			sdk.AccAddress(suite.address.Bytes()),
-			suite.signer,
+			suite.App.EvmKeeper.GetNonce(suite.Ctx, suite.Address),
+			sdk.AccAddress(suite.Address.Bytes()),
+			suite.Signer,
 			ethSigner,
 		)
 		require.NoError(b, err)
 
 		b.StartTimer()
-		resp, err := suite.app.EvmKeeper.ApplyTransaction(suite.ctx, tx)
+		resp, err := suite.App.EvmKeeper.ApplyTransaction(suite.Ctx, tx)
 		b.StopTimer()
 
 		require.NoError(b, err)
@@ -214,22 +214,22 @@ func BenchmarkApplyTransactionWithDynamicFeeTx(b *testing.B) {
 	suite := KeeperTestSuite{enableFeemarket: true, enableLondonHF: true}
 	suite.SetupTestWithT(b)
 
-	ethSigner := ethtypes.LatestSignerForChainID(suite.app.EvmKeeper.ChainID())
+	ethSigner := ethtypes.LatestSignerForChainID(suite.App.EvmKeeper.ChainID())
 
 	b.ResetTimer()
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
 		tx, err := newSignedEthTx(templateDynamicFeeTx,
-			suite.app.EvmKeeper.GetNonce(suite.ctx, suite.address),
-			sdk.AccAddress(suite.address.Bytes()),
-			suite.signer,
+			suite.App.EvmKeeper.GetNonce(suite.Ctx, suite.Address),
+			sdk.AccAddress(suite.Address.Bytes()),
+			suite.Signer,
 			ethSigner,
 		)
 		require.NoError(b, err)
 
 		b.StartTimer()
-		resp, err := suite.app.EvmKeeper.ApplyTransaction(suite.ctx, tx)
+		resp, err := suite.App.EvmKeeper.ApplyTransaction(suite.Ctx, tx)
 		b.StopTimer()
 
 		require.NoError(b, err)
@@ -241,10 +241,10 @@ func BenchmarkApplyMessage(b *testing.B) {
 	suite := KeeperTestSuite{enableLondonHF: true}
 	suite.SetupTestWithT(b)
 
-	params, err := suite.app.EvmKeeper.GetParams(suite.ctx)
+	params, err := suite.App.EvmKeeper.GetParams(suite.Ctx)
 	require.NoError(b, err)
-	ethCfg := params.ChainConfig.EthereumConfig(suite.app.EvmKeeper.ChainID())
-	signer := ethtypes.LatestSignerForChainID(suite.app.EvmKeeper.ChainID())
+	ethCfg := params.ChainConfig.EthereumConfig(suite.App.EvmKeeper.ChainID())
+	signer := ethtypes.LatestSignerForChainID(suite.App.EvmKeeper.ChainID())
 
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -252,11 +252,11 @@ func BenchmarkApplyMessage(b *testing.B) {
 		b.StopTimer()
 
 		m, err := newNativeMessage(
-			suite.app.EvmKeeper.GetNonce(suite.ctx, suite.address),
-			suite.ctx.BlockHeight(),
-			suite.address,
+			suite.App.EvmKeeper.GetNonce(suite.Ctx, suite.Address),
+			suite.Ctx.BlockHeight(),
+			suite.Address,
 			ethCfg,
-			suite.signer,
+			suite.Signer,
 			signer,
 			ethtypes.AccessListTxType,
 			nil,
@@ -265,7 +265,7 @@ func BenchmarkApplyMessage(b *testing.B) {
 		require.NoError(b, err)
 
 		b.StartTimer()
-		resp, err := suite.app.EvmKeeper.ApplyMessage(suite.ctx, m, nil, true)
+		resp, err := suite.App.EvmKeeper.ApplyMessage(suite.Ctx, m, nil, true)
 		b.StopTimer()
 
 		require.NoError(b, err)
@@ -277,10 +277,10 @@ func BenchmarkApplyMessageWithLegacyTx(b *testing.B) {
 	suite := KeeperTestSuite{enableLondonHF: true}
 	suite.SetupTestWithT(b)
 
-	params, err := suite.app.EvmKeeper.GetParams(suite.ctx)
+	params, err := suite.App.EvmKeeper.GetParams(suite.Ctx)
 	require.NoError(b, err)
-	ethCfg := params.ChainConfig.EthereumConfig(suite.app.EvmKeeper.ChainID())
-	signer := ethtypes.LatestSignerForChainID(suite.app.EvmKeeper.ChainID())
+	ethCfg := params.ChainConfig.EthereumConfig(suite.App.EvmKeeper.ChainID())
+	signer := ethtypes.LatestSignerForChainID(suite.App.EvmKeeper.ChainID())
 
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -288,11 +288,11 @@ func BenchmarkApplyMessageWithLegacyTx(b *testing.B) {
 		b.StopTimer()
 
 		m, err := newNativeMessage(
-			suite.app.EvmKeeper.GetNonce(suite.ctx, suite.address),
-			suite.ctx.BlockHeight(),
-			suite.address,
+			suite.App.EvmKeeper.GetNonce(suite.Ctx, suite.Address),
+			suite.Ctx.BlockHeight(),
+			suite.Address,
 			ethCfg,
-			suite.signer,
+			suite.Signer,
 			signer,
 			ethtypes.LegacyTxType,
 			nil,
@@ -301,7 +301,7 @@ func BenchmarkApplyMessageWithLegacyTx(b *testing.B) {
 		require.NoError(b, err)
 
 		b.StartTimer()
-		resp, err := suite.app.EvmKeeper.ApplyMessage(suite.ctx, m, nil, true)
+		resp, err := suite.App.EvmKeeper.ApplyMessage(suite.Ctx, m, nil, true)
 		b.StopTimer()
 
 		require.NoError(b, err)
@@ -313,10 +313,10 @@ func BenchmarkApplyMessageWithDynamicFeeTx(b *testing.B) {
 	suite := KeeperTestSuite{enableFeemarket: true, enableLondonHF: true}
 	suite.SetupTestWithT(b)
 
-	params, err := suite.app.EvmKeeper.GetParams(suite.ctx)
+	params, err := suite.App.EvmKeeper.GetParams(suite.Ctx)
 	require.NoError(b, err)
-	ethCfg := params.ChainConfig.EthereumConfig(suite.app.EvmKeeper.ChainID())
-	signer := ethtypes.LatestSignerForChainID(suite.app.EvmKeeper.ChainID())
+	ethCfg := params.ChainConfig.EthereumConfig(suite.App.EvmKeeper.ChainID())
+	signer := ethtypes.LatestSignerForChainID(suite.App.EvmKeeper.ChainID())
 
 	b.ResetTimer()
 	b.ReportAllocs()
@@ -324,11 +324,11 @@ func BenchmarkApplyMessageWithDynamicFeeTx(b *testing.B) {
 		b.StopTimer()
 
 		m, err := newNativeMessage(
-			suite.app.EvmKeeper.GetNonce(suite.ctx, suite.address),
-			suite.ctx.BlockHeight(),
-			suite.address,
+			suite.App.EvmKeeper.GetNonce(suite.Ctx, suite.Address),
+			suite.Ctx.BlockHeight(),
+			suite.Address,
 			ethCfg,
-			suite.signer,
+			suite.Signer,
 			signer,
 			ethtypes.DynamicFeeTxType,
 			nil,
@@ -337,7 +337,7 @@ func BenchmarkApplyMessageWithDynamicFeeTx(b *testing.B) {
 		require.NoError(b, err)
 
 		b.StartTimer()
-		resp, err := suite.app.EvmKeeper.ApplyMessage(suite.ctx, m, nil, true)
+		resp, err := suite.App.EvmKeeper.ApplyMessage(suite.Ctx, m, nil, true)
 		b.StopTimer()
 
 		require.NoError(b, err)
