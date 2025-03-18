@@ -32,7 +32,7 @@ func (suite *KeeperTestSuite) TestCalculateBaseFee() {
 			0,
 			sdkmath.LegacyZeroDec(),
 			func(baseFee sdkmath.Int) sdkmath.Int {
-				params, err := suite.app.FeeMarketKeeper.GetParams(suite.ctx)
+				params, err := suite.App.FeeMarketKeeper.GetParams(suite.Ctx)
 				suite.Require().NoError(err)
 				return params.BaseFee
 			},
@@ -44,7 +44,7 @@ func (suite *KeeperTestSuite) TestCalculateBaseFee() {
 			50,
 			sdkmath.LegacyZeroDec(),
 			func(baseFee sdkmath.Int) sdkmath.Int {
-				params, err := suite.app.FeeMarketKeeper.GetParams(suite.ctx)
+				params, err := suite.App.FeeMarketKeeper.GetParams(suite.Ctx)
 				suite.Require().NoError(err)
 				return params.BaseFee
 			},
@@ -56,7 +56,7 @@ func (suite *KeeperTestSuite) TestCalculateBaseFee() {
 			50,
 			sdkmath.LegacyNewDec(1500000000),
 			func(baseFee sdkmath.Int) sdkmath.Int {
-				params, err := suite.app.FeeMarketKeeper.GetParams(suite.ctx)
+				params, err := suite.App.FeeMarketKeeper.GetParams(suite.Ctx)
 				suite.Require().NoError(err)
 				return params.BaseFee
 			},
@@ -98,17 +98,17 @@ func (suite *KeeperTestSuite) TestCalculateBaseFee() {
 		suite.Run(fmt.Sprintf("Case %s", tc.name), func() {
 			suite.SetupTest() // reset
 
-			params, err := suite.app.FeeMarketKeeper.GetParams(suite.ctx)
+			params, err := suite.App.FeeMarketKeeper.GetParams(suite.Ctx)
 			suite.Require().NoError(err)
 			params.NoBaseFee = tc.NoBaseFee
 			params.MinGasPrice = tc.minGasPrice
-			suite.app.FeeMarketKeeper.SetParams(suite.ctx, params)
+			suite.App.FeeMarketKeeper.SetParams(suite.Ctx, params)
 
 			// Set block height
-			suite.ctx = suite.ctx.WithBlockHeight(tc.blockHeight)
+			suite.Ctx = suite.Ctx.WithBlockHeight(tc.blockHeight)
 
 			// Set parent block gas
-			err = suite.app.FeeMarketKeeper.SetBlockGasWanted(suite.ctx, tc.parentBlockGasWanted)
+			err = suite.App.FeeMarketKeeper.SetBlockGasWanted(suite.Ctx, tc.parentBlockGasWanted)
 			suite.Require().NoError(err)
 
 			// Set next block target/gasLimit through Consensus Param MaxGas
@@ -117,9 +117,9 @@ func (suite *KeeperTestSuite) TestCalculateBaseFee() {
 				MaxBytes: 10,
 			}
 			consParams := tmproto.ConsensusParams{Block: &blockParams}
-			suite.ctx = suite.ctx.WithConsensusParams(consParams)
+			suite.Ctx = suite.Ctx.WithConsensusParams(consParams)
 
-			fee, err := suite.app.FeeMarketKeeper.CalculateBaseFee(suite.ctx)
+			fee, err := suite.App.FeeMarketKeeper.CalculateBaseFee(suite.Ctx)
 			suite.Require().NoError(err)
 			if tc.NoBaseFee {
 				suite.Require().Nil(fee, tc.name)

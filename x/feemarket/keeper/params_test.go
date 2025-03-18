@@ -8,7 +8,7 @@ import (
 
 func (suite *KeeperTestSuite) TestSetGetParams() {
 	params := types.DefaultParams()
-	suite.app.FeeMarketKeeper.SetParams(suite.ctx, params)
+	suite.App.FeeMarketKeeper.SetParams(suite.Ctx, params)
 	testCases := []struct {
 		name      string
 		paramsFun func() interface{}
@@ -21,7 +21,7 @@ func (suite *KeeperTestSuite) TestSetGetParams() {
 				return types.DefaultParams()
 			},
 			func() interface{} {
-				params, err := suite.app.FeeMarketKeeper.GetParams(suite.ctx)
+				params, err := suite.App.FeeMarketKeeper.GetParams(suite.Ctx)
 				suite.Require().NoError(err)
 				return params
 			},
@@ -31,11 +31,11 @@ func (suite *KeeperTestSuite) TestSetGetParams() {
 			"success - Check ElasticityMultiplier is set to 3 and can be retrieved correctly",
 			func() interface{} {
 				params.ElasticityMultiplier = 3
-				suite.app.FeeMarketKeeper.SetParams(suite.ctx, params)
+				suite.App.FeeMarketKeeper.SetParams(suite.Ctx, params)
 				return params.ElasticityMultiplier
 			},
 			func() interface{} {
-				params, err := suite.app.FeeMarketKeeper.GetParams(suite.ctx)
+				params, err := suite.App.FeeMarketKeeper.GetParams(suite.Ctx)
 				suite.Require().NoError(err)
 				return params.ElasticityMultiplier
 			},
@@ -44,11 +44,11 @@ func (suite *KeeperTestSuite) TestSetGetParams() {
 		{
 			"success - Check BaseFeeEnabled is computed with its default params and can be retrieved correctly",
 			func() interface{} {
-				suite.app.FeeMarketKeeper.SetParams(suite.ctx, types.DefaultParams())
+				suite.App.FeeMarketKeeper.SetParams(suite.Ctx, types.DefaultParams())
 				return true
 			},
 			func() interface{} {
-				enable, err := suite.app.FeeMarketKeeper.GetBaseFeeEnabled(suite.ctx)
+				enable, err := suite.App.FeeMarketKeeper.GetBaseFeeEnabled(suite.Ctx)
 				suite.Require().NoError(err)
 				return enable
 			},
@@ -59,11 +59,11 @@ func (suite *KeeperTestSuite) TestSetGetParams() {
 			func() interface{} {
 				params.NoBaseFee = true
 				params.EnableHeight = 5
-				suite.app.FeeMarketKeeper.SetParams(suite.ctx, params)
+				suite.App.FeeMarketKeeper.SetParams(suite.Ctx, params)
 				return true
 			},
 			func() interface{} {
-				enable, err := suite.app.FeeMarketKeeper.GetBaseFeeEnabled(suite.ctx)
+				enable, err := suite.App.FeeMarketKeeper.GetBaseFeeEnabled(suite.Ctx)
 				suite.Require().NoError(err)
 				return enable
 			},

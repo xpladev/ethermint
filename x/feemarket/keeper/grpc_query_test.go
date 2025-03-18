@@ -16,11 +16,11 @@ func (suite *KeeperTestSuite) TestQueryParams() {
 		},
 	}
 	for _, tc := range testCases {
-		params, err := suite.app.FeeMarketKeeper.GetParams(suite.ctx)
+		params, err := suite.App.FeeMarketKeeper.GetParams(suite.Ctx)
 		suite.Require().NoError(err)
 		exp := &types.QueryParamsResponse{Params: params}
 
-		res, err := suite.queryClient.Params(suite.ctx.Context(), &types.QueryParamsRequest{})
+		res, err := suite.queryClient.Params(suite.Ctx.Context(), &types.QueryParamsRequest{})
 		if tc.expPass {
 			suite.Require().Equal(exp, res, tc.name)
 			suite.Require().NoError(err)
@@ -44,7 +44,7 @@ func (suite *KeeperTestSuite) TestQueryBaseFee() {
 		{
 			"pass - default Base Fee",
 			func() {
-				baseFee, err := suite.app.FeeMarketKeeper.GetBaseFee(suite.ctx)
+				baseFee, err := suite.App.FeeMarketKeeper.GetBaseFee(suite.Ctx)
 				suite.Require().NoError(err)
 				initialBaseFee := sdkmath.NewIntFromBigInt(baseFee)
 				expRes = &types.QueryBaseFeeResponse{BaseFee: &initialBaseFee}
@@ -55,7 +55,7 @@ func (suite *KeeperTestSuite) TestQueryBaseFee() {
 			"pass - non-nil Base Fee",
 			func() {
 				baseFee := sdkmath.OneInt().BigInt()
-				err := suite.app.FeeMarketKeeper.SetBaseFee(suite.ctx, baseFee)
+				err := suite.App.FeeMarketKeeper.SetBaseFee(suite.Ctx, baseFee)
 				suite.Require().NoError(err)
 
 				aux = sdkmath.NewIntFromBigInt(baseFee)
@@ -67,7 +67,7 @@ func (suite *KeeperTestSuite) TestQueryBaseFee() {
 	for _, tc := range testCases {
 		tc.malleate()
 
-		res, err := suite.queryClient.BaseFee(suite.ctx.Context(), &types.QueryBaseFeeRequest{})
+		res, err := suite.queryClient.BaseFee(suite.Ctx.Context(), &types.QueryBaseFeeRequest{})
 		if tc.expPass {
 			suite.Require().NotNil(res)
 			suite.Require().Equal(expRes, res, tc.name)
@@ -89,11 +89,11 @@ func (suite *KeeperTestSuite) TestQueryBlockGas() {
 		},
 	}
 	for _, tc := range testCases {
-		gas, err := suite.app.FeeMarketKeeper.GetBlockGasWanted(suite.ctx)
+		gas, err := suite.App.FeeMarketKeeper.GetBlockGasWanted(suite.Ctx)
 		suite.Require().NoError(err)
 		exp := &types.QueryBlockGasResponse{Gas: int64(gas)}
 
-		res, err := suite.queryClient.BlockGas(suite.ctx.Context(), &types.QueryBlockGasRequest{})
+		res, err := suite.queryClient.BlockGas(suite.Ctx.Context(), &types.QueryBlockGasRequest{})
 		if tc.expPass {
 			suite.Require().Equal(exp, res, tc.name)
 			suite.Require().NoError(err)

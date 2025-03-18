@@ -24,8 +24,8 @@ func (suite *KeeperTestSuite) TestEndBlock() {
 			false,
 			func() {
 				meter := storetypes.NewGasMeter(uint64(1000000000))
-				suite.ctx = suite.ctx.WithBlockGasMeter(meter)
-				suite.app.FeeMarketKeeper.SetTransientBlockGasWanted(suite.ctx, 5000000)
+				suite.Ctx = suite.Ctx.WithBlockGasMeter(meter)
+				suite.App.FeeMarketKeeper.SetTransientBlockGasWanted(suite.Ctx, 5000000)
 			},
 			uint64(2500000),
 		},
@@ -33,15 +33,15 @@ func (suite *KeeperTestSuite) TestEndBlock() {
 	for _, tc := range testCases {
 		suite.Run(fmt.Sprintf("Case %s", tc.name), func() {
 			suite.SetupTest() // reset
-			params, err := suite.app.FeeMarketKeeper.GetParams(suite.ctx)
+			params, err := suite.App.FeeMarketKeeper.GetParams(suite.Ctx)
 			suite.Require().NoError(err)
 			params.NoBaseFee = tc.NoBaseFee
-			suite.app.FeeMarketKeeper.SetParams(suite.ctx, params)
+			suite.App.FeeMarketKeeper.SetParams(suite.Ctx, params)
 
 			tc.malleate()
 
-			suite.app.FeeMarketKeeper.EndBlock(suite.ctx)
-			gasWanted, err := suite.app.FeeMarketKeeper.GetBlockGasWanted(suite.ctx)
+			suite.App.FeeMarketKeeper.EndBlock(suite.Ctx)
+			gasWanted, err := suite.App.FeeMarketKeeper.GetBlockGasWanted(suite.Ctx)
 			suite.Require().NoError(err)
 			suite.Require().Equal(tc.expGasWanted, gasWanted, tc.name)
 		})

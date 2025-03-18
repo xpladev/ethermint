@@ -29,7 +29,7 @@ func (suite *KeeperTestSuite) TestUpdateParams() {
 
 	for _, tc := range testCases {
 		suite.Run("MsgUpdateParams", func() {
-			_, err := suite.app.FeeMarketKeeper.UpdateParams(suite.ctx, tc.request)
+			_, err := suite.App.FeeMarketKeeper.UpdateParams(suite.Ctx, tc.request)
 			if tc.expectErr {
 				suite.Require().Error(err)
 			} else {

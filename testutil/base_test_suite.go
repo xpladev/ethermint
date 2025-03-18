@@ -12,6 +12,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	"github.com/xpladev/ethermint/app"
@@ -57,14 +58,7 @@ type BaseTestSuite struct {
 
 func (suite *BaseTestSuite) SetupTest() {
 	checkTx := false
-	suite.App = app.EthSetup(checkTx, nil)
 	suite.SetupApp(checkTx)
-}
-
-func (suite *BaseTestSuite) SetupTestWithT(t require.TestingT) {
-	checkTx := false
-	suite.App = app.EthSetup(checkTx, nil)
-	suite.SetupAppWithT(checkTx, t, nil)
 }
 
 func (suite *BaseTestSuite) SetupApp(checkTx bool) {
@@ -124,6 +118,13 @@ func (suite *BaseTestSuite) SetupAppWithT(checkTx bool, t require.TestingT, patc
 	valAddr := sdk.ValAddress(suite.Address.Bytes())
 	validator, err := stakingtypes.NewValidator(valAddr.String(), priv.PubKey(), stakingtypes.Description{})
 	require.NoError(t, err)
+	if patch == nil {
+		validator = stakingkeeper.TestingUpdateValidator(suite.App.StakingKeeper, suite.Ctx, validator, true)
+		valBz, err := suite.App.StakingKeeper.ValidatorAddressCodec().StringToBytes(validator.GetOperator())
+		require.NoError(t, err)
+		err = suite.App.StakingKeeper.Hooks().AfterValidatorCreated(suite.Ctx, valBz)
+		require.NoError(t, err)
+	}
 	err = suite.App.StakingKeeper.SetValidatorByConsAddr(suite.Ctx, validator)
 	require.NoError(t, err)
 	suite.App.StakingKeeper.SetValidator(suite.Ctx, validator)
