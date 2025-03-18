@@ -2,15 +2,20 @@ package testutil
 
 import (
 	_ "embed"
+	"math/big"
 	"time"
 
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
+	sdkmath "cosmossdk.io/math"
+
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	"github.com/cosmos/cosmos-sdk/crypto/keyring"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
@@ -153,4 +158,99 @@ func (suite *BaseTestSuite) Commit() {
 
 func (suite *BaseTestSuite) StateDB() *statedb.StateDB {
 	return statedb.New(suite.Ctx, suite.App.EvmKeeper, statedb.NewEmptyTxConfig(common.BytesToHash(suite.Ctx.HeaderHash())))
+}
+
+func (suite *BaseTestSuite) BuildEthTx(
+	priv *ethsecp256k1.PrivKey,
+	to *common.Address,
+	gasLimit uint64,
+	gasPrice *big.Int,
+	gasFeeCap *big.Int,
+	gasTipCap *big.Int,
+	accesses *ethtypes.AccessList,
+) *evmtypes.MsgEthereumTx {
+	chainID := suite.App.EvmKeeper.ChainID()
+	from := common.BytesToAddress(priv.PubKey().Address().Bytes())
+	nonce := suite.getNonce(from.Bytes())
+	data := make([]byte, 0)
+	ethTxParams := &evmtypes.EvmTxArgs{
+		ChainID:   chainID,
+		To:        to,
+		Nonce:     nonce,
+		GasLimit:  gasLimit,
+		GasPrice:  gasPrice,
+		GasTipCap: gasTipCap,
+		GasFeeCap: gasFeeCap,
+		Accesses:  accesses,
+		Input:     data,
+	}
+	msgEthereumTx := evmtypes.NewTx(ethTxParams)
+	msgEthereumTx.From = from.String()
+	return msgEthereumTx
+}
+
+func (suite *BaseTestSuite) PrepareEthTx(priv *ethsecp256k1.PrivKey, msgEthereumTx *evmtypes.MsgEthereumTx) []byte {
+	option, err := codectypes.NewAnyWithValue(&evmtypes.ExtensionOptionsEthereumTx{})
+	suite.Require().NoError(err)
+
+	txBuilder := suite.App.TxConfig().NewTxBuilder()
+	builder, ok := txBuilder.(authtx.ExtensionOptionsTxBuilder)
+	suite.Require().True(ok)
+	builder.SetExtensionOptions(option)
+
+	err = msgEthereumTx.Sign(suite.EthSigner, tests.NewSigner(priv))
+	suite.Require().NoError(err)
+
+	// A valid msg should have empty `From`
+	msgEthereumTx.From = ""
+	err = txBuilder.SetMsgs(msgEthereumTx)
+	suite.Require().NoError(err)
+
+	txData, err := evmtypes.UnpackTxData(msgEthereumTx.Data)
+	suite.Require().NoError(err)
+
+	params, err := suite.App.EvmKeeper.GetParams(suite.Ctx)
+	suite.Require().NoError(err)
+	evmDenom := params.EvmDenom
+	fees := sdk.Coins{{Denom: evmDenom, Amount: sdkmath.NewIntFromBigInt(txData.Fee())}}
+	builder.SetFeeAmount(fees)
+	builder.SetGasLimit(msgEthereumTx.GetGas())
+
+	// bz are bytes to be broadcasted over the network
+	bz, err := suite.App.TxConfig().TxEncoder()(txBuilder.GetTx())
+	suite.Require().NoError(err)
+
+	return bz
+}
+
+func (suite *BaseTestSuite) CheckTx(bz []byte) abci.ResponseCheckTx {
+	req := abci.RequestCheckTx{Tx: bz}
+	res, _ := suite.App.BaseApp.CheckTx(&req)
+	return *res
+}
+
+func (suite *BaseTestSuite) DeliverTx(bz []byte) *abci.ExecTxResult {
+	bzs := [][]byte{[]byte(bz)}
+	height := suite.App.LastBlockHeight() + 1
+	req := abci.RequestFinalizeBlock{
+		ProposerAddress: suite.ConsAddress,
+		Height:          height,
+		Txs:             bzs,
+	}
+	res, err := suite.App.BaseApp.FinalizeBlock(&req)
+	if err != nil {
+		panic(err)
+	}
+	rlt := res.GetTxResults()
+	if len(rlt) != 1 {
+		panic("must have one result")
+	}
+	return rlt[0]
+}
+
+func (suite *BaseTestSuite) getNonce(addressBytes []byte) uint64 {
+	return suite.App.EvmKeeper.GetNonce(
+		suite.Ctx,
+		common.BytesToAddress(addressBytes),
+	)
 }
