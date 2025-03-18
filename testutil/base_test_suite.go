@@ -2,6 +2,7 @@ package testutil
 
 import (
 	_ "embed"
+	"fmt"
 	"math/big"
 	"time"
 
@@ -17,6 +18,7 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
@@ -27,6 +29,7 @@ import (
 	ethermint "github.com/xpladev/ethermint/types"
 	"github.com/xpladev/ethermint/x/evm/statedb"
 	evmtypes "github.com/xpladev/ethermint/x/evm/types"
+	feemarkettypes "github.com/xpladev/ethermint/x/feemarket/types"
 
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -253,4 +256,50 @@ func (suite *BaseTestSuite) getNonce(addressBytes []byte) uint64 {
 		suite.Ctx,
 		common.BytesToAddress(addressBytes),
 	)
+}
+
+// setupTestWithContext sets up a test chain with an example Cosmos send msg,
+// given a local (validator config) and a gloabl (feemarket param) minGasPrice
+func (suite *BaseTestSuite) SetupTestWithContext(valMinGasPrice string, minGasPrice sdkmath.LegacyDec, baseFee sdkmath.Int) (*ethsecp256k1.PrivKey, banktypes.MsgSend) {
+	suite.SetupApp(false)
+
+	gasPrices, err := sdk.ParseDecCoins(valMinGasPrice + suite.Denom)
+	if err != nil {
+		panic(fmt.Sprintf("invalid minimum gas prices: %v", err))
+	}
+	suite.Ctx = suite.Ctx.WithMinGasPrices(gasPrices)
+
+	privKey, address := generateKey()
+	amount, ok := sdkmath.NewIntFromString("10000000000000000000")
+	suite.Require().True(ok)
+	initBalance := sdk.Coins{sdk.Coin{
+		Denom:  suite.Denom,
+		Amount: amount,
+	}}
+	FundAccount(suite.App.BankKeeper, suite.Ctx, address, initBalance)
+
+	msg := banktypes.MsgSend{
+		FromAddress: address.String(),
+		ToAddress:   address.String(),
+		Amount: sdk.Coins{sdk.Coin{
+			Denom:  suite.Denom,
+			Amount: sdkmath.NewInt(10000),
+		}},
+	}
+	suite.Commit()
+
+	params := feemarkettypes.DefaultParams()
+	params.MinGasPrice = minGasPrice
+	err = suite.App.FeeMarketKeeper.SetParams(suite.Ctx, params)
+	suite.Require().NoError(err)
+	err = suite.App.FeeMarketKeeper.SetBaseFee(suite.Ctx, baseFee.BigInt())
+	suite.Require().NoError(err)
+	suite.Commit()
+
+	return privKey, msg
+}
+
+func generateKey() (*ethsecp256k1.PrivKey, sdk.AccAddress) {
+	address, priv := tests.NewAddrKey()
+	return priv.(*ethsecp256k1.PrivKey), sdk.AccAddress(address.Bytes())
 }
