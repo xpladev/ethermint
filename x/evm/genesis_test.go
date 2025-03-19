@@ -68,8 +68,8 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 			"invalid account type",
 			func() {
 				acc := authtypes.NewBaseAccountWithAddress(address.Bytes())
-				acc.AccountNumber = suite.app.AccountKeeper.NextAccountNumber(suite.ctx)
-				suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+				acc.AccountNumber = suite.App.AccountKeeper.NextAccountNumber(suite.Ctx)
+				suite.App.AccountKeeper.SetAccount(suite.Ctx, acc)
 			},
 			&types.GenesisState{
 				Params: types.DefaultParams(),
@@ -84,8 +84,8 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 		{
 			"invalid code hash",
 			func() {
-				acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, address.Bytes())
-				suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+				acc := suite.App.AccountKeeper.NewAccountWithAddress(suite.Ctx, address.Bytes())
+				suite.App.AccountKeeper.SetAccount(suite.Ctx, acc)
 			},
 			&types.GenesisState{
 				Params: types.DefaultParams(),
@@ -101,9 +101,9 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 		{
 			"ignore empty account code checking",
 			func() {
-				acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, address.Bytes())
+				acc := suite.App.AccountKeeper.NewAccountWithAddress(suite.Ctx, address.Bytes())
 
-				suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+				suite.App.AccountKeeper.SetAccount(suite.Ctx, acc)
 			},
 			&types.GenesisState{
 				Params: types.DefaultParams(),
@@ -119,13 +119,13 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 		{
 			"ignore empty account code checking with non-empty codehash",
 			func() {
-				num := suite.app.AccountKeeper.NextAccountNumber(suite.ctx)
+				num := suite.App.AccountKeeper.NextAccountNumber(suite.Ctx)
 				ethAcc := &etherminttypes.EthAccount{
 					BaseAccount: authtypes.NewBaseAccount(address.Bytes(), nil, num, 0),
 					CodeHash:    common.BytesToHash([]byte{1, 2, 3}).Hex(),
 				}
 
-				suite.app.AccountKeeper.SetAccount(suite.ctx, ethAcc)
+				suite.App.AccountKeeper.SetAccount(suite.Ctx, ethAcc)
 			},
 			&types.GenesisState{
 				Params: types.DefaultParams(),
@@ -151,13 +151,13 @@ func (suite *EvmTestSuite) TestInitGenesis() {
 			if tc.expPanic {
 				suite.Require().Panics(
 					func() {
-						_ = evm.InitGenesis(suite.ctx, suite.app.EvmKeeper, suite.app.AccountKeeper, *tc.genState)
+						_ = evm.InitGenesis(suite.Ctx, suite.App.EvmKeeper, suite.App.AccountKeeper, *tc.genState)
 					},
 				)
 			} else {
 				suite.Require().NotPanics(
 					func() {
-						_ = evm.InitGenesis(suite.ctx, suite.app.EvmKeeper, suite.app.AccountKeeper, *tc.genState)
+						_ = evm.InitGenesis(suite.Ctx, suite.App.EvmKeeper, suite.App.AccountKeeper, *tc.genState)
 					},
 				)
 			}
