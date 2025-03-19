@@ -47,7 +47,6 @@ type BaseTestSuite struct {
 
 	Ctx         sdk.Context
 	App         *app.EthermintApp
-	//queryClient evmtypes.QueryClient //check
 	Address     common.Address
 	ConsAddress sdk.ConsAddress
 
@@ -58,10 +57,7 @@ type BaseTestSuite struct {
 	AppCodec codec.Codec
 	Signer   keyring.Signer
 
-	//enableFeemarket  bool //evm
-	//enableLondonHF   bool //evm
-	//mintFeeCollector bool //evm
-	Denom            string
+	Denom string
 }
 
 func (suite *BaseTestSuite) SetupTest() {

@@ -84,8 +84,7 @@ func (rtbp *RegisterCoinProposal) ValidateBasic() error {
 
 		// Prohibit denominations that contain the evm denom
 		if strings.Contains(metadata.Base, "evm") {
-			return fmt.Errorf("cannot register the EVM denomination %s", metadata.Base,
-			)
+			return fmt.Errorf("cannot register the EVM denomination %s", metadata.Base)
 		}
 
 		if err := ibctransfertypes.ValidateIBCDenom(metadata.Base); err != nil {
